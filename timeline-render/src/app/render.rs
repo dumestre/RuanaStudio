@@ -165,6 +165,11 @@ fn ensure_cached_buffer(
     }
     let size = (contents.len() + contents.len() / 4 + 3) & !3;
     let size = size.max(4) as u64;
+    // Todo buffer deste cache é preenchido com `queue.write_buffer`, que exige
+    // COPY_DST no wgpu 30 (diferente do `create_buffer_init`, que usa
+    // mapped_at_creation). Adicionar aqui evita o panic de validação em
+    // qualquer chamador que esqueça a flag.
+    let usage = usage | wgpu::BufferUsages::COPY_DST;
     let buffer = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some(label),
         size,
@@ -1096,7 +1101,7 @@ impl App {
                 }
                 .proj(),
             ),
-            wgpu::BufferUsages::UNIFORM,
+            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         );
 
         // Grava direto do estado da engine (sem clone intermediário). O
