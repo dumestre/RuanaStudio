@@ -33,6 +33,13 @@ pub enum ChangeKind {
 #[derive(Debug, Clone)]
 pub enum DocumentEvent {
     TrackAdded(Track),
+    /// Mudança de nome da trilha (rename inline no mixer).
+    TrackRenamed {
+        /// Posição da trilha no projeto (mesmo endereço do mixer).
+        index: usize,
+        old: String,
+        new: String,
+    },
     ClipAdded(Clip),
     ClipSliced {
         /// Clip antes do corte (para restaurar no undo).
@@ -259,6 +266,11 @@ impl Project {
             DocumentEvent::TrackAdded(track) => {
                 self.tracks.push(track.clone());
             }
+            DocumentEvent::TrackRenamed { index, new, .. } => {
+                if let Some(track) = self.tracks.get_mut(*index) {
+                    track.name = new.clone();
+                }
+            }
             DocumentEvent::ClipAdded(clip) => {
                 self.clips.push(clip.clone());
             }
@@ -334,6 +346,11 @@ impl Project {
         match event {
             DocumentEvent::TrackAdded(track) => {
                 self.tracks.retain(|t| t.id != track.id);
+            }
+            DocumentEvent::TrackRenamed { index, old, .. } => {
+                if let Some(track) = self.tracks.get_mut(*index) {
+                    track.name = old.clone();
+                }
             }
             DocumentEvent::ClipAdded(clip) => {
                 self.clips.retain(|c| c.id != clip.id);
@@ -556,6 +573,29 @@ impl Project {
         self.emit(&event, ChangeKind::Apply);
         self.history.record(event);
         id
+    }
+
+    /// Renomeia uma trilha pelo índice (rename inline no mixer).
+    ///
+    /// Retorna `false` se o índice não existe ou se o nome não mudou — assim
+    /// confirmar a edição sem alterar nada não empilha undo.
+    pub fn rename_track(&mut self, index: usize, name: impl Into<String>) -> bool {
+        let name = name.into();
+        let Some(track) = self.tracks.get_mut(index) else {
+            return false;
+        };
+        if track.name == name {
+            return false;
+        }
+        let old = std::mem::replace(&mut track.name, name.clone());
+        let event = DocumentEvent::TrackRenamed {
+            index,
+            old,
+            new: name,
+        };
+        self.emit(&event, ChangeKind::Apply);
+        self.history.record(event);
+        true
     }
 
     /// Adiciona um clip na trilha informada.
@@ -1155,6 +1195,28 @@ impl Project {
         self.apply_event(&event);
         self.history.record(event);
         true
+    }
+
+    /// Renomeia um insert do canal. Retorna `false` se o canal/slot não
+    /// existem ou se o nome não mudou.
+    pub fn rename_mixer_insert(
+        &mut self,
+        channel: usize,
+        index: usize,
+        name: impl Into<String>,
+    ) -> bool {
+        let name = name.into();
+        let Some(mut inserts) = self.mixer_channel(channel).map(|m| m.inserts.clone()) else {
+            return false;
+        };
+        let Some(slot) = inserts.get_mut(index) else {
+            return false;
+        };
+        if slot.name == name {
+            return false;
+        }
+        slot.name = name;
+        self.set_mixer_inserts(channel, inserts)
     }
 
     /// Adiciona um insert ao canal do mixer.
@@ -1857,6 +1919,30 @@ mod tests {
         // O movimento entra no histórico como uma única operação.
         assert!(project.undo());
         assert_eq!(project.tracks[1].mixer.inserts[0].name, first);
+    }
+
+    #[test]
+    fn rename_de_track_e_insert_com_undo() {
+        let mut project = demo();
+        let old_name = project.tracks[0].name.clone();
+
+        assert!(project.rename_track(0, "Vox Lead"));
+        assert_eq!(project.tracks[0].name, "Vox Lead");
+        // Confirmar sem alterar não empilha undo.
+        assert!(!project.rename_track(0, "Vox Lead"));
+        assert!(!project.rename_track(999, "x"));
+
+        assert!(project.undo());
+        assert_eq!(project.tracks[0].name, old_name);
+
+        let old_insert = project.tracks[0].mixer.inserts[0].name.clone();
+        assert!(project.rename_mixer_insert(0, 0, "EQ 8"));
+        assert_eq!(project.tracks[0].mixer.inserts[0].name, "EQ 8");
+        assert!(!project.rename_mixer_insert(0, 0, "EQ 8"));
+        assert!(!project.rename_mixer_insert(0, 99, "x"));
+
+        assert!(project.undo());
+        assert_eq!(project.tracks[0].mixer.inserts[0].name, old_insert);
     }
 
     // =====================================================

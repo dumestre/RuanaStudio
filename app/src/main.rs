@@ -606,6 +606,24 @@ pub fn setup(
                 .move_mixer_insert(channel as usize, from as usize, to as usize);
             apply_mixer();
         });
+        let project_rn = project.clone();
+        let apply_mixer = handles.apply_mixer_state.clone();
+        ui.on_mixer_channel_renamed(move |channel, name| {
+            project_rn
+                .borrow_mut()
+                .rename_track(channel as usize, name.as_str());
+            apply_mixer();
+        });
+        let project_irn = project.clone();
+        let apply_mixer = handles.apply_mixer_state.clone();
+        ui.on_mixer_insert_renamed(move |channel, slot, name| {
+            project_irn.borrow_mut().rename_mixer_insert(
+                channel as usize,
+                slot as usize,
+                name.as_str(),
+            );
+            apply_mixer();
+        });
     }
 
     // Copiar/colar a cadeia de inserts do canal selecionado no mixer.

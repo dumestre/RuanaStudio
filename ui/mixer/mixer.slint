@@ -64,6 +64,8 @@ export component Mixer inherits Rectangle {
     callback channel-insert-removed(int, int);
     callback channel-insert-toggled(int, int);
     callback channel-insert-moved(int, int, int);
+    callback channel-insert-renamed(int, int, string);
+    callback channel-renamed(int, string);
     callback channel-clip-cleared(int);
 
     // Altura natural do conteúdo (usada pelo Rust para dimensionar a
@@ -157,6 +159,8 @@ export component Mixer inherits Rectangle {
                         insert-remove(slot) => { root.channel-insert-removed(i, slot); }
                         insert-toggle(slot) => { root.channel-insert-toggled(i, slot); }
                         insert-move(from, to) => { root.channel-insert-moved(i, from, to); }
+                        insert-rename(slot, nome) => { root.channel-insert-renamed(i, slot, nome); }
+                        rename(nome) => { root.channel-renamed(i, nome); }
                         clear-clip(idx) => { root.channel-clip-cleared(idx); }
                     }
                 }
@@ -173,7 +177,7 @@ export component Mixer inherits Rectangle {
             if root.mutes.length > 0 : MixerChannel {
                 width: root.channel-width;
                 height: 100%;
-                name: root.names[root.mutes.length - 1];
+                name: "Master";
                 channel-color: Theme.text-primary;
                 is-master: true;
                 // Antes a master não recebia altura: ficava com o default de
@@ -203,6 +207,7 @@ export component Mixer inherits Rectangle {
                 insert-remove(slot) => { root.channel-insert-removed(root.mutes.length - 1, slot); }
                 insert-toggle(slot) => { root.channel-insert-toggled(root.mutes.length - 1, slot); }
                 insert-move(from, to) => { root.channel-insert-moved(root.mutes.length - 1, from, to); }
+                insert-rename(slot, nome) => { root.channel-insert-renamed(root.mutes.length - 1, slot, nome); }
                 clear-clip(idx) => { root.channel-clip-cleared(idx); }
             }
         }

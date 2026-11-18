@@ -61,6 +61,10 @@ pub fn install(
             let insert_counts = Rc::new(slint::VecModel::from(insert_counts));
             let insert_names = Rc::new(slint::VecModel::from(insert_names));
             let insert_enabled = Rc::new(slint::VecModel::from(insert_enabled));
+            // Nomes dos canais (o painel flutuante tem a própria cópia).
+            let names: Vec<slint::SharedString> =
+                proj.tracks.iter().map(|t| t.name.clone().into()).collect();
+            let names = Rc::new(slint::VecModel::from(names));
             if let Some(ui) = ui_weak.upgrade() {
                 apply_mixer_models!(&ui, &models);
                 ui.set_mixer_insert_counts(insert_counts.clone().into());
@@ -75,6 +79,7 @@ pub fn install(
                 slot.set_mixer_insert_names(insert_names.clone().into());
                 slot.set_mixer_insert_enabled(insert_enabled.clone().into());
                 slot.set_mixer_max_inserts(max_inserts);
+                slot.set_mixer_names(names.clone().into());
             }
         }
     };
@@ -264,6 +269,28 @@ pub fn install(
                     project
                         .borrow_mut()
                         .move_mixer_insert(channel as usize, from as usize, to as usize);
+                    apply_mixer();
+                });
+            }
+            {
+                let project = project.clone();
+                let apply_mixer = apply_mixer.clone();
+                p.on_mixer_channel_renamed(move |channel, name| {
+                    project
+                        .borrow_mut()
+                        .rename_track(channel as usize, name.as_str());
+                    apply_mixer();
+                });
+            }
+            {
+                let project = project.clone();
+                let apply_mixer = apply_mixer.clone();
+                p.on_mixer_insert_renamed(move |channel, slot, name| {
+                    project.borrow_mut().rename_mixer_insert(
+                        channel as usize,
+                        slot as usize,
+                        name.as_str(),
+                    );
                     apply_mixer();
                 });
             }

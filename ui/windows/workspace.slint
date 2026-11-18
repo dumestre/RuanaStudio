@@ -487,6 +487,8 @@ export component Workspace inherits Rectangle {
 
     callback mixer-insert-toggled(int, int);
     callback mixer-insert-moved(int, int, int);
+    callback mixer-insert-renamed(int, int, string);
+    callback mixer-channel-renamed(int, string);
     callback mixer-copy-slots(int);
     callback mixer-paste-slots(int);
     callback mixer-undo-requested();
@@ -1795,6 +1797,7 @@ export component Workspace inherits Rectangle {
                             root.mixer-max-inserts;
 
                         track-colors: root.track-colors;
+                        names: root.track-names;
                         selected-channel <=> root.mixer-selected-channel;
                         copy-inserts(ch) => { root.mixer-copy-slots(ch); }
                         paste-inserts(ch) => { root.mixer-paste-slots(ch); }
@@ -1856,6 +1859,27 @@ export component Workspace inherits Rectangle {
                                 ch,
                                 from,
                                 to
+                            );
+                        }
+
+
+                        channel-insert-renamed(
+                            ch,
+                            slot,
+                            nome
+                        ) => {
+                            root.mixer-insert-renamed(
+                                ch,
+                                slot,
+                                nome
+                            );
+                        }
+
+
+                        channel-renamed(ch, nome) => {
+                            root.mixer-channel-renamed(
+                                ch,
+                                nome
                             );
                         }
 

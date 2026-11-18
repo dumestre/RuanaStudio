@@ -179,6 +179,11 @@ pub fn apply_change(
                 tracks_model.push(track.name.clone().into());
             }
         }
+        DocumentEvent::TrackRenamed { index, new, .. } => {
+            if *index < tracks_model.row_count() {
+                tracks_model.set_row_data(*index, new.clone().into());
+            }
+        }
         DocumentEvent::ClipAdded(clip) => {
             if undo {
                 if let Some(i) = clip_row(clips_model, clip.id as i32) {

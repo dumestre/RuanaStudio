@@ -22,6 +22,11 @@ export component InsertSlot inherits Rectangle {
     callback drag-move(int, int);
     callback drag-drop(int, int);
 
+    // Renomear: double-click no nome abre o campo inline.
+    callback rename(int, string);
+    private property <bool> editing: false;
+    private property <string> draft: "";
+
     // Altura de um slot + espaçamento da lista (20px + 2px): converte o
     // deslocamento em pixels no número de posições percorridas.
     private property <length> press-y: 0px;
@@ -53,7 +58,7 @@ export component InsertSlot inherits Rectangle {
     }
 
     // Nome do processador
-    Text {
+    if !root.editing: Text {
         x: 19px;
         width: parent.width - 51px;
         height: 100%;
@@ -66,12 +71,18 @@ export component InsertSlot inherits Rectangle {
     }
 
     // Arrastar pelo número/nome reordena. A faixa da direita (34px) fica de
-    // fora para não roubar o clique do power nem do remover.
+    // fora para não roubar o clique do power nem do remover. Double-click
+    // entra no rename inline.
     drag-area := TouchArea {
         x: 0;
         width: parent.width - 34px;
         height: 100%;
         mouse-cursor: move;
+
+        double-clicked => {
+            root.draft = root.name;
+            root.editing = true;
+        }
 
         pointer-event(ev) => {
             if (ev.kind == PointerEventKind.down) {
@@ -93,6 +104,33 @@ export component InsertSlot inherits Rectangle {
                         Math.round((self.mouse-y - root.press-y) / 1px / 22)
                     );
                 }
+            }
+        }
+    }
+
+    // Campo de edição do nome (por cima do drag-area, só quando editando).
+    if root.editing: TextInput {
+        x: 19px;
+        width: parent.width - 51px;
+        height: 100%;
+        text <=> root.draft;
+        color: Theme.text-primary;
+        font-size: 9px;
+        vertical-alignment: center;
+        single-line: true;
+        selection-background-color: Theme.accent;
+
+        init => { self.focus(); }
+
+        accepted => {
+            root.rename(root.slot-index, root.draft);
+            root.editing = false;
+        }
+
+        changed has-focus => {
+            if (!self.has-focus && root.editing) {
+                root.rename(root.slot-index, root.draft);
+                root.editing = false;
             }
         }
     }
