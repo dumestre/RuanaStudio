@@ -35,7 +35,7 @@ export component TimelineHeader inherits Rectangle {
     // ticks. Indexar direto nesse intervalo mostraria o canal vizinho
     // no lugar do errado.
     function meter-at(track: int, slot: int) -> float {
-        let idx = track * 4 + slot;
+        let idx = track * 6 + slot;
         return idx >= 0 && idx < root.channel-meters.length
             ? root.channel-meters[idx]
             : 0.0;
@@ -358,6 +358,8 @@ export component TimelineHeader inherits Rectangle {
                     right-level: root.meter-at(i, 1);
                     left-peak: root.meter-at(i, 2);
                     right-peak: root.meter-at(i, 3);
+                    left-rms: root.meter-at(i, 4);
+                    right-rms: root.meter-at(i, 5);
                     left-clipped: root.clip-at(i, 0);
                     right-clipped: root.clip-at(i, 1);
 

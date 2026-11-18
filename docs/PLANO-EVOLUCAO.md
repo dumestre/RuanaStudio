@@ -84,7 +84,11 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
       **editável**: botão direito no cabeçalho abre a paleta (20 cores de
       `ClipPalette`); a escolha vira `TrackColorChanged` no core e o mesmo
       `track-colors` alimenta a timeline
-- [ ] **1A.7** Meters: peak/RMS, escala dB, clip-hold, reset por clique
+- [x] **1A.7** Meters: **RMS real** medido por buffer na engine (soma de
+      quadrados → `sqrt(sum/n)`), publicado ao lado do pico; na UI a barra de
+      pico ganhou núcleo de RMS (decaimento próprio), linha de **peak-hold** e
+      **luz de clip** por lado (latch até o clique no medidor). Escala dB já
+      existia
 - [ ] **1A.8** Estado do mixer persistido (altura, seções, ordem)
 
 **Aceite:** 24 canais usáveis em 1080p sem cortar conteúdo.
@@ -179,3 +183,4 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 | 2026-11-17 | _este commit_ | feat(mixer): reordenar inserts por drag (Fase 1A.4) |
 | 2026-11-17 | _este commit_ | feat(mixer): rename inline de canal e insert (Fase 1A.5) |
 | 2026-11-17 | _este commit_ | feat(mixer): cor do canal sincronizada e editável (Fase 1A.6) |
+| 2026-11-17 | _este commit_ | feat(mixer): RMS + peak-hold + luz de clip nos meters (Fase 1A.7) |

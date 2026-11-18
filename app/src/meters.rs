@@ -43,19 +43,21 @@ use slint::{Model, VecModel};
 
 use crate::audio_bridge::AudioBridge;
 
-/// Floats por canal no modelo da UI: L, R, pico L, pico R.
+/// Floats por canal no modelo da UI: L, R, pico L, pico R, RMS L, RMS R.
 ///
-/// São 4 e não 2 porque o Slint recebe barra e peak-hold já
+/// São 6 e não 2 porque o Slint recebe barra, peak-hold e RMS já
 /// suavizados, que evoluem em taxas diferentes. O layout é o mesmo dos
 /// canais do mixer (`mixer_state()`): índice do canal em
 /// `canal * FLOATS_PER_CHANNEL + campo`.
-pub const FLOATS_PER_CHANNEL: usize = 4;
+pub const FLOATS_PER_CHANNEL: usize = 6;
 
 /// Índices dentro do bloco de um canal.
 pub const FIELD_LEFT: usize = 0;
 pub const FIELD_RIGHT: usize = 1;
 pub const FIELD_PEAK_LEFT: usize = 2;
 pub const FIELD_PEAK_RIGHT: usize = 3;
+pub const FIELD_RMS_LEFT: usize = 4;
+pub const FIELD_RMS_RIGHT: usize = 5;
 
 /// Bools por canal no modelo de clip: L, R.
 pub const CLIP_BOOLS_PER_CHANNEL: usize = 2;
@@ -138,6 +140,14 @@ const PEAK_DECAY: f32 = 0.95;
 /// Ticks que o pico é segurado antes de começar a descer (~1 s a 30 Hz).
 const PEAK_HOLD_TICKS: u32 = 30;
 
+/// Decaimento do RMS por tick.
+///
+/// Mais lento que o da barra de pico: o RMS é um valor médio e, se
+/// descesse na mesma velocidade, as duas barras andariam coladas e a
+/// leitura perderia o contraste entre "volume médio" e "topo do sinal".
+/// Meia-vida de ~7 ticks (~230 ms) — some sem piscar, mas sem enganar.
+const RMS_DECAY: f32 = 0.90;
+
 /// Estado de suavização de um canal.
 ///
 /// Vive só na thread da UI. Os `*_level` são o que a barra mostra; os
@@ -148,6 +158,9 @@ struct ChannelMeter {
     level_right: f32,
     peak_left: f32,
     peak_right: f32,
+    /// RMS já suavizado (barra interna do medidor).
+    rms_left: f32,
+    rms_right: f32,
     /// Ticks que o peak-hold ainda segura antes de começar a cair.
     ///
     /// Um por lado, e decrementado UMA vez por tick. Com um contador
@@ -158,8 +171,8 @@ struct ChannelMeter {
 }
 
 impl ChannelMeter {
-    /// Avança o envelope um tick com o pico medido.
-    fn advance(&mut self, peak_left: f32, peak_right: f32) {
+    /// Avança o envelope um tick com o pico e o RMS medidos.
+    fn advance(&mut self, peak_left: f32, peak_right: f32, rms_left: f32, rms_right: f32) {
         // Ataque instantâneo, decaimento suave: o VU tem que subir
         // junto com o som, não atrás dele.
         for (level, peak) in [
@@ -170,6 +183,19 @@ impl ChannelMeter {
                 *level = peak;
             } else {
                 *level *= LEVEL_DECAY;
+            }
+        }
+
+        // O RMS segue a mesma disciplina, mas com decaimento próprio:
+        // a barra média não pode cair junto com o transiente.
+        for (level, rms) in [
+            (&mut self.rms_left, rms_left),
+            (&mut self.rms_right, rms_right),
+        ] {
+            if rms > *level {
+                *level = rms;
+            } else {
+                *level *= RMS_DECAY;
             }
         }
 
@@ -212,7 +238,7 @@ impl ChannelMeter {
 /// quadro, e as barras dos dois lados não podem divergir porque leem o
 /// mesmo número. É o mesmo truque de `MixerModels`.
 pub struct MeterModels {
-    /// `FLOATS_PER_CHANNEL` por canal: L, R, pico L, pico R (0..1).
+    /// `FLOATS_PER_CHANNEL` por canal: L, R, pico L, pico R, RMS L, RMS R (0..1).
     pub values: Rc<VecModel<f32>>,
     /// `CLIP_BOOLS_PER_CHANNEL` por canal: L, R.
     pub clipped: Rc<VecModel<bool>>,
@@ -257,6 +283,10 @@ impl MeterModels {
             .set_row_data(base + FIELD_PEAK_LEFT, meter_norm(state.peak_left));
         self.values
             .set_row_data(base + FIELD_PEAK_RIGHT, meter_norm(state.peak_right));
+        self.values
+            .set_row_data(base + FIELD_RMS_LEFT, meter_norm(state.rms_left));
+        self.values
+            .set_row_data(base + FIELD_RMS_RIGHT, meter_norm(state.rms_right));
         let cbase = channel * CLIP_BOOLS_PER_CHANNEL;
         self.clipped.set_row_data(cbase, clipped.0);
         self.clipped.set_row_data(cbase + 1, clipped.1);
@@ -330,7 +360,12 @@ impl MeterPump {
         for channel in 0..channels {
             let reading = bank.read(channel);
             let state = &mut self.channels[channel];
-            state.advance(reading.peak_left, reading.peak_right);
+            state.advance(
+                reading.peak_left,
+                reading.peak_right,
+                reading.rms_left,
+                reading.rms_right,
+            );
             self.meters.publish(
                 channel,
                 state,
@@ -419,10 +454,10 @@ mod tests {
     #[test]
     fn envelope_attacks_instantly_and_decays() {
         let mut c = ChannelMeter::default();
-        c.advance(1.0, 1.0);
+        c.advance(1.0, 1.0, 0.5, 0.5);
         assert_eq!(c.level_left, 1.0, "ataque tem que ser instantâneo");
 
-        c.advance(0.0, 0.0);
+        c.advance(0.0, 0.0, 0.0, 0.0);
         assert_eq!(c.level_left, LEVEL_DECAY, "decaimento por tick");
         assert_eq!(c.peak_left, 1.0, "o pico segura no primeiro tick");
     }
@@ -430,10 +465,10 @@ mod tests {
     #[test]
     fn peak_hold_survives_a_short_gap() {
         let mut c = ChannelMeter::default();
-        c.advance(0.8, 0.8);
+        c.advance(0.8, 0.8, 0.8, 0.8);
         // Silêncio por menos que o hold: o pico não pode cair.
         for _ in 0..PEAK_HOLD_TICKS - 5 {
-            c.advance(0.0, 0.0);
+            c.advance(0.0, 0.0, 0.0, 0.0);
         }
         assert_eq!(c.peak_left, 0.8);
     }
@@ -445,12 +480,12 @@ mod tests {
         // metade — a linha descia cedo demais justamente no lado que o
         // usuário estava ouvindo.
         let mut c = ChannelMeter::default();
-        c.advance(0.8, 0.8);
+        c.advance(0.8, 0.8, 0.8, 0.8);
         assert_eq!(c.hold_left, PEAK_HOLD_TICKS);
         assert_eq!(c.hold_right, PEAK_HOLD_TICKS);
 
         for _ in 1..PEAK_HOLD_TICKS {
-            c.advance(0.0, 0.0);
+            c.advance(0.0, 0.0, 0.0, 0.0);
             assert!(c.hold_left > 0, "esquerdo acabou antes do hold");
             assert!(c.hold_right > 0, "direito acabou antes do hold");
             assert_eq!(c.peak_left, 0.8, "pico caiu durante o hold");
@@ -458,7 +493,7 @@ mod tests {
 
         // No último tick o contador zera; a linha só começa a descer no
         // seguinte.
-        c.advance(0.0, 0.0);
+        c.advance(0.0, 0.0, 0.0, 0.0);
         assert_eq!(c.hold_left, 0);
         assert_eq!(c.hold_right, 0);
         assert_eq!(c.peak_left, 0.8);
@@ -467,9 +502,9 @@ mod tests {
     #[test]
     fn peak_falls_after_the_hold_expires() {
         let mut c = ChannelMeter::default();
-        c.advance(0.8, 0.8);
+        c.advance(0.8, 0.8, 0.8, 0.8);
         for _ in 0..PEAK_HOLD_TICKS + 5 {
-            c.advance(0.0, 0.0);
+            c.advance(0.0, 0.0, 0.0, 0.0);
         }
         assert!(c.peak_left < 0.8, "o pico tem que ceder depois do hold");
     }
@@ -477,11 +512,43 @@ mod tests {
     #[test]
     fn peak_never_sits_below_the_live_level() {
         let mut c = ChannelMeter::default();
-        c.advance(0.2, 0.2);
+        c.advance(0.2, 0.2, 0.2, 0.2);
         for _ in 0..PEAK_HOLD_TICKS + 40 {
-            c.advance(0.2, 0.2);
+            c.advance(0.2, 0.2, 0.2, 0.2);
             assert!(c.peak_left >= c.level_left, "peak abaixo do nível");
         }
+    }
+
+    #[test]
+    fn rms_attacks_instantly_and_decays_slower_than_the_level() {
+        let mut c = ChannelMeter::default();
+        c.advance(0.9, 0.9, 0.6, 0.6);
+        assert_eq!(c.rms_left, 0.6, "ataque do RMS tem que ser instantâneo");
+
+        c.advance(0.0, 0.0, 0.0, 0.0);
+        assert_eq!(c.level_left, LEVEL_DECAY);
+        assert_eq!(c.rms_left, 0.6 * RMS_DECAY);
+        assert!(
+            c.rms_left > c.level_left,
+            "o RMS tem que cair mais devagar que a barra de pico"
+        );
+    }
+
+    #[test]
+    fn publish_writes_the_rms_fields() {
+        let models = MeterModels::new(1);
+        let mut c = ChannelMeter::default();
+        c.advance(1.0, 1.0, 0.5, 0.25);
+        models.publish(0, &c, (false, false));
+
+        assert_eq!(
+            models.values.row_data(FIELD_RMS_LEFT),
+            Some(meter_norm(0.5))
+        );
+        assert_eq!(
+            models.values.row_data(FIELD_RMS_RIGHT),
+            Some(meter_norm(0.25))
+        );
     }
 
     #[test]

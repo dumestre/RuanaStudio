@@ -202,11 +202,12 @@ export component MainWindow inherits Window {
     // Medição real, um par de modelos compartilhado entre o mixer e
     // o cabeçalho das faixas.
     //
-    // `channel-meters` é achatado em 4 floats por canal
-    // ([L, R, pico L, pico R]) e `channel-clipped` em 2 bools
-    // ([clip L, clip R]). São estes mesmos modelos que o `MeterPump`
-    // escreve — foi a duplicação dos arrays por tela que permitia o
-    // medidor do mixer e o da timeline discordarem do mesmo áudio.
+    // `channel-meters` é achatado em 6 floats por canal
+    // ([L, R, pico L, pico R, RMS L, RMS R]) e `channel-clipped` em 2
+    // bools ([clip L, clip R]). São estes mesmos modelos que o
+    // `MeterPump` escreve — foi a duplicação dos arrays por tela que
+    // permitia o medidor do mixer e o da timeline discordarem do mesmo
+    // áudio.
     in-out property <[float]> channel-meters: [];
     in-out property <[bool]> channel-clipped: [];
 

@@ -31,6 +31,8 @@ in property <float> left-level: 0.0;
 in property <float> right-level: 0.0;
 in property <float> left-peak: 0.0;
 in property <float> right-peak: 0.0;
+in property <float> left-rms: 0.0;
+in property <float> right-rms: 0.0;
 in property <bool> left-clipped: false;
 in property <bool> right-clipped: false;
 
@@ -511,6 +513,8 @@ Meter {
     right-level: root.right-level;
     left-peak: root.left-peak;
     right-peak: root.right-peak;
+    left-rms: root.left-rms;
+    right-rms: root.right-rms;
     left-clipped: root.left-clipped;
     right-clipped: root.right-clipped;
 

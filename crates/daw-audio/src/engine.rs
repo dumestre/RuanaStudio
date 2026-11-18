@@ -615,11 +615,12 @@ struct RtState {
     /// ato de armar (casamento por `clip.id`) para a leitura por frame
     /// ser O(1) e correta mesmo se a ordem dos clips mudou.
     xfade_prev: Vec<u32>,
-    /// Pico do buffer por canal (L, R), em [`crate::meter::FLOATS_PER_CHANNEL`]
+    /// Acumuladores de medição por canal: pico L, pico R, soma de
+    /// quadrados L, soma de quadrados R — [`crate::meter::FLOATS_PER_CHANNEL`]
     /// entradas por canal. Zera a cada callback — o que a UI mostra é o
-    /// pico DESTE buffer, e segurar o máximo histórico aqui faria o
-    /// medidor nunca cair.
-    meter_peaks: Vec<f32>,
+    /// pico/RMS DESTE buffer, e segurar o máximo histórico aqui faria o
+    /// medidor nunca cair. As somas viram RMS no fim do buffer.
+    meter_acc: Vec<f32>,
     /// Bitmask de clip por canal, acumulado no buffer. Vive na RT (que
     /// decide o que estourou) e é publicado a cada callback.
     meter_clips: Vec<u32>,
@@ -649,7 +650,7 @@ impl RtState {
             // alocação — a versão anterior crescia o `Vec` no callback,
             // e um `resize` na RT durante uma criação de faixa é uma
             // queda de áudio justamente no gesto que a causou.
-            meter_peaks: vec![
+            meter_acc: vec![
                 0.0;
                 crate::meter::MAX_METER_CHANNELS * crate::meter::FLOATS_PER_CHANNEL
             ],
@@ -664,13 +665,13 @@ impl RtState {
     /// banco publicado, então nem criar nem apagar trilha aloca na RT.
     fn prepare_meters(&mut self, channels: usize) {
         let need = channels * crate::meter::FLOATS_PER_CHANNEL;
-        if need > self.meter_peaks.len() {
+        if need > self.meter_acc.len() {
             // Mais canais do que o banco aceita medir: o excedente é
             // ignorado pelo `publish`, e medir não pode custar um
             // estouro de índice no callback.
             return;
         }
-        for v in self.meter_peaks[..need].iter_mut() {
+        for v in self.meter_acc[..need].iter_mut() {
             *v = 0.0;
         }
         for v in self.meter_clips[..channels].iter_mut() {
@@ -1244,15 +1245,21 @@ impl AudioEngine {
                     // que o banco mede não pode estourar índice aqui — o
                     // áudio continua passando, só esse canal não é medido.
                     if track_idx < crate::meter::MAX_METER_CHANNELS {
-                        let base = track_idx * 2;
+                        let base = track_idx * crate::meter::FLOATS_PER_CHANNEL;
                         let mag_l = track_l.abs();
                         let mag_r = track_r.abs();
-                        if mag_l > rt.meter_peaks[base] {
-                            rt.meter_peaks[base] = mag_l;
+                        if mag_l > rt.meter_acc[base + crate::meter::FIELD_PEAK_L] {
+                            rt.meter_acc[base + crate::meter::FIELD_PEAK_L] = mag_l;
                         }
-                        if mag_r > rt.meter_peaks[base + 1] {
-                            rt.meter_peaks[base + 1] = mag_r;
+                        if mag_r > rt.meter_acc[base + crate::meter::FIELD_PEAK_R] {
+                            rt.meter_acc[base + crate::meter::FIELD_PEAK_R] = mag_r;
                         }
+                        // RMS: energia do buffer inteiro. Duas multiplicações
+                        // e duas somas por frame — o custo é o mesmo do pico,
+                        // e dividir pelo número de frames no fim evita uma
+                        // raiz quadrada por amostra.
+                        rt.meter_acc[base + crate::meter::FIELD_RMS_L] += mag_l * mag_l;
+                        rt.meter_acc[base + crate::meter::FIELD_RMS_R] += mag_r * mag_r;
                         if mag_l >= 1.0 {
                             rt.meter_clips[track_idx] |= CLIP_L;
                         }
@@ -1321,20 +1328,24 @@ impl AudioEngine {
             // segura tudo em ±1, então medir depois nunca acusaria
             // clip. O que acende a luz é "o material passou do fundo de
             // escala", que é a informação que o usuário precisa.
-            let master_base = master_channel * 2;
-            let mag_l = bus_l.abs();
-            let mag_r = bus_r.abs();
-            if mag_l > rt.meter_peaks[master_base] {
-                rt.meter_peaks[master_base] = mag_l;
-            }
-            if mag_r > rt.meter_peaks[master_base + 1] {
-                rt.meter_peaks[master_base + 1] = mag_r;
-            }
-            if mag_l >= 1.0 {
-                rt.meter_clips[master_channel] |= CLIP_L;
-            }
-            if mag_r >= 1.0 {
-                rt.meter_clips[master_channel] |= CLIP_R;
+            let master_base = master_channel * crate::meter::FLOATS_PER_CHANNEL;
+            if master_channel < crate::meter::MAX_METER_CHANNELS {
+                let mag_l = bus_l.abs();
+                let mag_r = bus_r.abs();
+                if mag_l > rt.meter_acc[master_base + crate::meter::FIELD_PEAK_L] {
+                    rt.meter_acc[master_base + crate::meter::FIELD_PEAK_L] = mag_l;
+                }
+                if mag_r > rt.meter_acc[master_base + crate::meter::FIELD_PEAK_R] {
+                    rt.meter_acc[master_base + crate::meter::FIELD_PEAK_R] = mag_r;
+                }
+                rt.meter_acc[master_base + crate::meter::FIELD_RMS_L] += mag_l * mag_l;
+                rt.meter_acc[master_base + crate::meter::FIELD_RMS_R] += mag_r * mag_r;
+                if mag_l >= 1.0 {
+                    rt.meter_clips[master_channel] |= CLIP_L;
+                }
+                if mag_r >= 1.0 {
+                    rt.meter_clips[master_channel] |= CLIP_R;
+                }
             }
 
             let (raw_l, raw_r) = limit_stereo(bus_l, bus_r);
@@ -1360,12 +1371,20 @@ impl AudioEngine {
         // basta: é um número de medição, não um sinal de ordem — a UI
         // pode ler o pico do buffer anterior ao lado do atual sem que
         // isso signifique nada para o áudio.
-        for channel in 0..meter_channels {
-            let base = channel * 2;
+        for channel in 0..meter_channels.min(crate::meter::MAX_METER_CHANNELS) {
+            let base = channel * crate::meter::FLOATS_PER_CHANNEL;
+            // Divide a energia acumulada pelo número de frames do buffer
+            // e fecha com uma única raiz por canal. Buffer vazio não
+            // existe na prática, mas `max(1)` evita divisão por zero.
+            let inv_frames = 1.0 / frames.max(1) as f32;
+            let rms_left = (rt.meter_acc[base + crate::meter::FIELD_RMS_L] * inv_frames).sqrt();
+            let rms_right = (rt.meter_acc[base + crate::meter::FIELD_RMS_R] * inv_frames).sqrt();
             meters.publish(
                 channel,
-                rt.meter_peaks[base],
-                rt.meter_peaks[base + 1],
+                rt.meter_acc[base + crate::meter::FIELD_PEAK_L],
+                rt.meter_acc[base + crate::meter::FIELD_PEAK_R],
+                rms_left,
+                rms_right,
                 rt.meter_clips[channel],
             );
         }
@@ -1437,8 +1456,8 @@ mod tests {
         // `resize` no callback, o que punia a criação de uma faixa com
         // uma queda de áudio exatamente no gesto que a causou.
         let mut rt = RtState::new();
-        let peaks = crate::meter::MAX_METER_CHANNELS * crate::meter::FLOATS_PER_CHANNEL;
-        assert_eq!(rt.meter_peaks.len(), peaks);
+        let acc = crate::meter::MAX_METER_CHANNELS * crate::meter::FLOATS_PER_CHANNEL;
+        assert_eq!(rt.meter_acc.len(), acc);
         assert_eq!(rt.meter_clips.len(), crate::meter::MAX_METER_CHANNELS);
 
         rt.prepare_meters(2);
@@ -1446,24 +1465,26 @@ mod tests {
         // Mais canais do que a capacidade: ignora em vez de estourar.
         rt.prepare_meters(crate::meter::MAX_METER_CHANNELS + 10);
 
-        assert_eq!(rt.meter_peaks.len(), peaks);
+        assert_eq!(rt.meter_acc.len(), acc);
         assert_eq!(rt.meter_clips.len(), crate::meter::MAX_METER_CHANNELS);
     }
 
     #[test]
     fn prepare_meters_clears_only_the_channels_in_use() {
         let mut rt = RtState::new();
-        rt.meter_peaks[0] = 0.9;
-        rt.meter_peaks[4] = 0.9;
+        // Base do canal 2 com o novo stride (4 floats por canal).
+        let other = 2 * crate::meter::FLOATS_PER_CHANNEL;
+        rt.meter_acc[0] = 0.9;
+        rt.meter_acc[other] = 0.9;
         rt.meter_clips[1] = CLIP_L;
 
         rt.prepare_meters(1);
 
-        assert_eq!(rt.meter_peaks[0], 0.0);
+        assert_eq!(rt.meter_acc[0], 0.0);
         // Canal de fora do projeto em uso não é tocado — e, mais
         // importante, o clip latch dele também não é limpo: a UI ainda
         // pode estar mostrando aquela luz.
-        assert_eq!(rt.meter_peaks[4], 0.9);
+        assert_eq!(rt.meter_acc[other], 0.9);
         assert_eq!(rt.meter_clips[1], CLIP_L);
     }
 
@@ -1974,6 +1995,20 @@ mod tests {
         assert!(
             master_reading.peak_left > 0.5,
             "medidor do master tem que acompanhar o áudio (l={})",
+            master_reading.peak_left,
+        );
+        // O RMS sai da mesma janela do pico, então nunca pode passar
+        // dele nem ficar em zero com sinal presente.
+        assert!(
+            track_reading.rms_left > 0.0 && track_reading.rms_left <= track_reading.peak_left,
+            "RMS da trilha fora da faixa (rms={} peak={})",
+            track_reading.rms_left,
+            track_reading.peak_left,
+        );
+        assert!(
+            master_reading.rms_left > 0.0 && master_reading.rms_left <= master_reading.peak_left,
+            "RMS do master fora da faixa (rms={} peak={})",
+            master_reading.rms_left,
             master_reading.peak_left,
         );
         assert!(

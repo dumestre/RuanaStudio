@@ -5,6 +5,9 @@ export component StereoMeter inherits Rectangle {
     in property <float> right-level: 0.0;
     in property <float> left-peak: 0.0;
     in property <float> right-peak: 0.0;
+    /// RMS já normalizado 0..1 (não é amplitude linear).
+    in property <float> left-rms: 0.0;
+    in property <float> right-rms: 0.0;
     in property <bool> left-clipped: false;
     in property <bool> right-clipped: false;
 
@@ -13,6 +16,15 @@ export component StereoMeter inherits Rectangle {
     in property <color> meter-background: #B8B8B8;
     in property <color> meter-border: transparent;
     in property <bool> signal-fill-only: false;
+
+    // Cores das três leituras que dividem a mesma coluna:
+    // - verde vivo: envelope de pico (a barra principal);
+    // - verde claro: núcleo do RMS (o "volume médio");
+    // - branco: linha de peak-hold, que passa do topo da barra.
+    private property <color> level-color: #00C853;
+    private property <color> rms-color: #8CFF9A;
+    private property <color> peak-color: #FFFFFF;
+    private property <color> clip-color: #E53935;
 
     private property <length> meter-height: Math.max(1px, root.height);
     private property <length> channel-width: Math.max(2px, root.meter-width);
@@ -39,9 +51,10 @@ export component StereoMeter inherits Rectangle {
             border-width: 0px; border-color: root.meter-border;
             border-radius: 0px; clip: true;
 
+            // Barra principal: envelope de pico.
             Rectangle {
                 x: 0px; y: 0px; width: parent.width; height: parent.height;
-                background: #00C853;
+                background: root.level-color;
                 clip: true;
                 Rectangle {
                     x: 0px; y: 0px; width: parent.width;
@@ -49,6 +62,40 @@ export component StereoMeter inherits Rectangle {
                     background: root.meter-background;
                     visible: !root.signal-fill-only || root.left-level > 0.001;
                 }
+            }
+
+            // Núcleo do RMS: faixa clara dentro da barra. Como o RMS
+            // decai mais devagar que o pico, num corte abrupto ele
+            // aparece por cima da barra verde — é o "rabo" médio, e
+            // não um erro de escala.
+            Rectangle {
+                x: 0px;
+                width: parent.width;
+                y: parent.height * (1.0 - root.level-clamped(root.left-rms));
+                height: parent.height * root.level-clamped(root.left-rms);
+                background: root.rms-color;
+                visible: root.left-rms > 0.001;
+            }
+
+            // Peak-hold: a linha branca marca o topo alcançado, mesmo
+            // quando a barra já desceu.
+            Rectangle {
+                x: 0px;
+                width: parent.width;
+                y: Math.max(0px, Math.min(
+                    parent.height - 1px,
+                    parent.height * (1.0 - root.level-clamped(root.left-peak)) - 0.5px
+                ));
+                height: 1px;
+                background: root.peak-color;
+                visible: root.left-peak > 0.001;
+            }
+
+            // Luz de clip: latch até o clique no medidor.
+            Rectangle {
+                x: 0px; y: 0px; width: parent.width; height: 3px;
+                background: root.clip-color;
+                visible: root.left-clipped;
             }
         }
 
@@ -63,9 +110,10 @@ export component StereoMeter inherits Rectangle {
             border-width: 0px; border-color: root.meter-border;
             border-radius: 0px; clip: true;
 
+            // Barra principal: envelope de pico.
             Rectangle {
                 x: 0px; y: 0px; width: parent.width; height: parent.height;
-                background: #00C853;
+                background: root.level-color;
                 clip: true;
                 Rectangle {
                     x: 0px; y: 0px; width: parent.width;
@@ -73,6 +121,33 @@ export component StereoMeter inherits Rectangle {
                     background: root.meter-background;
                     visible: !root.signal-fill-only || root.right-level > 0.001;
                 }
+            }
+
+            Rectangle {
+                x: 0px;
+                width: parent.width;
+                y: parent.height * (1.0 - root.level-clamped(root.right-rms));
+                height: parent.height * root.level-clamped(root.right-rms);
+                background: root.rms-color;
+                visible: root.right-rms > 0.001;
+            }
+
+            Rectangle {
+                x: 0px;
+                width: parent.width;
+                y: Math.max(0px, Math.min(
+                    parent.height - 1px,
+                    parent.height * (1.0 - root.level-clamped(root.right-peak)) - 0.5px
+                ));
+                height: 1px;
+                background: root.peak-color;
+                visible: root.right-peak > 0.001;
+            }
+
+            Rectangle {
+                x: 0px; y: 0px; width: parent.width; height: 3px;
+                background: root.clip-color;
+                visible: root.right-clipped;
             }
         }
     }

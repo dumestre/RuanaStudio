@@ -27,6 +27,9 @@ export component Meter inherits Rectangle {
     in property <float> right-level: 0.0;
     in property <float> left-peak: 0.0;
     in property <float> right-peak: 0.0;
+    /// RMS normalizado 0..1, já suavizado pelo `MeterPump`.
+    in property <float> left-rms: 0.0;
+    in property <float> right-rms: 0.0;
 
     in property <bool> left-clipped: false;
     in property <bool> right-clipped: false;
@@ -161,6 +164,9 @@ export component Meter inherits Rectangle {
 
             left-peak: root.left-peak;
             right-peak: root.right-peak;
+
+            left-rms: root.left-rms;
+            right-rms: root.right-rms;
 
             left-clipped: root.left-clipped;
             right-clipped: root.right-clipped;
