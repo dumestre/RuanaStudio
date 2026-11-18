@@ -36,6 +36,10 @@ export component Mixer inherits Rectangle {
     callback redo-requested();
     in property <bool> show-header: true;
 
+    // Seções colapsáveis, comuns a todas as faixas (e à master).
+    in-out property <bool> show-inserts: true;
+    in-out property <bool> show-pan: true;
+
     // Leitura com guarda. O `MeterPump` publica o comprimento do
     // modelo, mas a reordenação de canais (mover uma faixa) acontece
     // antes do próximo tick: indexar direto nesse intervalo leria o
@@ -128,6 +132,8 @@ export component Mixer inherits Rectangle {
                         left-clipped: root.clip-at(i, 0);
                         right-clipped: root.clip-at(i, 1);
                         available-height: flickable.height;
+                        show-inserts: root.show-inserts;
+                        show-pan: root.show-pan;
 
                         insert-count: root.insert-counts[i];
                         insert-names: root.insert-names;
@@ -148,12 +154,25 @@ export component Mixer inherits Rectangle {
                 }
             }
 
+            // Separador: a master não rola com as faixas, então precisa de
+            // uma borda que marque o fim da área rolável.
+            Rectangle {
+                width: 2px;
+                height: 100%;
+                background: Theme.border;
+            }
+
             if root.mutes.length > 0 : MixerChannel {
                 width: 100px;
                 height: 100%;
                 name: root.names[root.mutes.length - 1];
                 channel-color: Theme.text-primary;
                 is-master: true;
+                // Antes a master não recebia altura: ficava com o default de
+                // 200px e o auto-colapso das seções não enxergava o painel.
+                available-height: root.height - (root.show-header ? 30px : 0px);
+                show-inserts: root.show-inserts;
+                show-pan: root.show-pan;
                 channel-index: root.mutes.length - 1;
                 selected: root.selected-channel == root.mutes.length - 1;
                 select-requested(channel) => { root.selected-channel = channel; }

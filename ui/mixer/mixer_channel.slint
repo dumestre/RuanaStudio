@@ -3,6 +3,7 @@ import { Button } from "../components/button.slint";
 import { PanControl } from "pan_control.slint";
 import { Meter } from "../components/meter.slint";
 import { InsertSlot } from "insert_slot.slint";
+import { SectionHeader } from "section_header.slint";
 import { AudioScale } from "../components/audio_scale.slint";
 import { ScrollView } from "std-widgets.slint";
 
@@ -53,6 +54,18 @@ export component MixerChannel inherits Rectangle {
     in property <int> insert-count: 0;
     in property <[string]> insert-names: [];
     in property <[bool]> insert-enabled: [];
+
+    // ==========================================
+    // SEÇÕES COLAPSÁVEIS
+    //
+    // O estado é do `Mixer` (global para todas as faixas, como num mixer
+    // de verdade): o usuário não quer abrir insert por insert.
+    // `inserts-visible` ainda exige altura mínima — painel baixo esmaga o
+    // bloco de fader/meter se os inserts insistirem em aparecer.
+    // ==========================================
+
+    in-out property <bool> show-inserts: true;
+    in-out property <bool> show-pan: true;
 
     // ==========================================
     // CALLBACKS
@@ -268,7 +281,13 @@ export component MixerChannel inherits Rectangle {
         // INSERTS
         // ======================================
 
-        VerticalLayout {
+        SectionHeader {
+            title: "INSERTS";
+            expanded: root.show-inserts;
+            toggled => { root.show-inserts = !root.show-inserts; }
+        }
+
+        if root.show-inserts: VerticalLayout {
             // MIDDLE FLEX: a única região elástica da faixa. `min-height:
             // 0` garante que ela cede espaço ANTES do bloco de fader/meter
             // quando o painel está baixo — sem isso o Slint esmagava o
@@ -349,7 +368,13 @@ export component MixerChannel inherits Rectangle {
         // PAN
         // ======================================
 
-        PanControl {
+        SectionHeader {
+            title: "PAN";
+            expanded: root.show-pan;
+            toggled => { root.show-pan = !root.show-pan; }
+        }
+
+        if root.show-pan: PanControl {
             horizontal-stretch: 1;
             value <=> root.pan;
             changed(v) => {

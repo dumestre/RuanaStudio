@@ -1,0 +1,51 @@
+// Cabeçalho de seção da faixa do mixer (INSERTS, PAN, ...).
+//
+// Triângulo + rótulo minúsculo. O estado vive no pai (`expanded`), porque o
+// mesmo componente é usado tanto na faixa normal quanto na master.
+
+import { Theme } from "../theme.slint";
+
+export component SectionHeader inherits Rectangle {
+    in property <string> title: "";
+    in-out property <bool> expanded: true;
+    /// `false` desenha o cabeçalho sem interação (seção fixa).
+    in property <bool> interactive: true;
+
+    callback toggled();
+
+    height: 12px;
+    width: 100%;
+    background: transparent;
+
+    HorizontalLayout {
+        alignment: LayoutAlignment.center;
+        cross-axis-alignment: CrossAxisAlignment.center;
+        spacing: 3px;
+        padding-left: 2px;
+
+        Path {
+            width: 6px;
+            height: 6px;
+            commands: root.expanded ? "M 0 0 L 6 3 L 0 6 Z" : "M 1 0 L 6 3 L 1 6 Z";
+            fill: root.interactive ? Theme.text-dim : Theme.text-primary;
+        }
+
+        Text {
+            text: root.title;
+            color: root.interactive ? Theme.text-dim : Theme.text-primary;
+            font-size: 7px;
+            font-weight: 700;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+
+    TouchArea {
+        enabled: root.interactive;
+        mouse-cursor: pointer;
+        clicked => {
+            root.expanded = !root.expanded;
+            root.toggled();
+        }
+    }
+}

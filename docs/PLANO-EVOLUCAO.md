@@ -65,8 +65,12 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 
 ### 1A · Layout e UX (`ui/mixer/*`)
 
-- [ ] **1A.1** Strip com seções colapsáveis (Inserts / EQ / Sends / Fader)
-- [ ] **1A.2** Master fixo à direita, com separador e largura própria
+- [x] **1A.1** Strip com seções colapsáveis — `ui/mixer/section_header.slint`
+      (triângulo + rótulo) e toggles **globais** `show-inserts` / `show-pan`
+      no `Mixer`, para abrir/fechar em todas as faixas de uma vez
+- [x] **1A.2** Master fixo à direita: já estava fora do `Flickable`; agora com
+      separador de 2px e recebendo `available-height` (antes herdava o default
+      de 200px e desafinava o layout)
 - [ ] **1A.3** Scroll horizontal + largura de canal (narrow/wide)
 - [ ] **1A.4** Reordenar inserts por drag
 - [ ] **1A.5** Rename inline (double-click) em canal e inserts
@@ -148,6 +152,7 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 | `.slint` com chaves desbalanceadas reporta linha errada | compilar a UI após cada edição |
 | Áudio granulado (buffer cpal) sem teste de escuta | validar antes de empilhar DSP |
 | Piano roll WIP possivelmente incompatível com Slint 1.18 | ligar e compilar cedo |
+| Auto-colapso de seção por altura em `.slint` gera binding loop | o `if` altera a altura que alimenta a condição; calcular no Rust e passar como flag |
 
 ---
 
@@ -160,3 +165,4 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 | 2026-11-17 | _este commit_ | feat(project): formato `.ruana` versionado (Fase 0.1) |
 | 2026-11-17 | _este commit_ | feat(app): `Ctrl+S` / `Ctrl+Shift+S` salva `.ruana` + dirty flag (Fase 0.2a) |
 | 2026-11-17 | _este commit_ | feat(app): `Ctrl+O` abre `.ruana` com rebind do documento (Fase 0.2b) |
+| 2026-11-17 | _este commit_ | feat(mixer): seções colapsáveis + master pinado com separador (Fase 1A.1/1A.2) |
