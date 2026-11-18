@@ -40,6 +40,7 @@ mod mixer;
 mod models;
 mod os_drop;
 mod playback;
+mod project_io;
 mod slint_host;
 mod stretch_worker;
 mod theme;

@@ -66,6 +66,8 @@ pub struct EngineBridge {
     pub win_pos: (f64, f64),
     /// O projeto mudou → o espelho de clips precisa de rebuild.
     pub clips_flag: Rc<Cell<bool>>,
+    /// Arquivo aberto + flag de alterações não salvas (`Ctrl+S`).
+    pub io: crate::project_io::ProjectIo,
     /// Ids que o espelho já carregou no engine (tick). Guarda do write-back
     /// de clips: um clip recém-importado só pode ser apagado do Project
     /// depois que o rebuild admitir o id no engine.
@@ -100,6 +102,15 @@ impl EngineBridge {
         let clips_flag = Rc::new(Cell::new(true));
         {
             let flag = clips_flag.clone();
+            project.borrow().subscribe(move |_event, _kind| {
+                flag.set(true);
+            });
+        }
+        // Flag de "alterado" para o Ctrl+S / título da janela. Fica no
+        // ProjectIo (e não num campo solto) porque o save é quem a limpa.
+        let io = crate::project_io::ProjectIo::new();
+        {
+            let flag = io.dirty_flag();
             project.borrow().subscribe(move |_event, _kind| {
                 flag.set(true);
             });
@@ -173,6 +184,7 @@ impl EngineBridge {
             audio_sync_timer: None,
             win_pos,
             clips_flag,
+            io,
             mirrored_clip_ids,
             open_clip_flag,
             active_piano_clip_id,
@@ -1019,6 +1031,49 @@ impl ApplicationHandler for Handler {
                 }
             }
             WindowEvent::KeyboardInput { event: key, .. } => {
+                // Ctrl+S / Ctrl+Shift+S: grava o projeto. Tratado antes da
+                // engine e sem repassar ao Slint, para não colidir com os
+                // atalhos de edição (Ctrl+C/A/Z/V/D...).
+                if key.state == ElementState::Pressed {
+                    if let Key::Character(text) = &key.logical_key {
+                        let (ctrl, shift) = {
+                            let st = self.state.borrow();
+                            (st.ctrl, st.shift)
+                        };
+                        if ctrl && text.eq_ignore_ascii_case("s") {
+                            let saved = {
+                                // Rc clonado primeiro: o `Ref` do projeto não
+                                // pode ser criado depois do `borrow_mut` da
+                                // bridge (mesma struct).
+                                let project_rc = bridge.borrow().project.clone();
+                                let project = project_rc.borrow();
+                                let transport = bridge
+                                    .borrow()
+                                    .transport
+                                    .lock()
+                                    .map(|t| t.clone())
+                                    .unwrap_or_default();
+                                let mut b = bridge.borrow_mut();
+                                crate::project_io::save_project(
+                                    &mut b.io,
+                                    &project,
+                                    &transport,
+                                    shift,
+                                )
+                            };
+                            match saved {
+                                Ok(path) => {
+                                    eprintln!("[project] salvo em {}", path.display());
+                                    if let Some(win) = self.window.as_ref() {
+                                        win.set_title(&bridge.borrow().io.window_title());
+                                    }
+                                }
+                                Err(msg) => eprintln!("[project] {msg}"),
+                            }
+                            return;
+                        }
+                    }
+                }
                 let adapter = bridge.borrow().overlay.window.clone();
                 // O motor processa os mesmos atalhos do renderer standalone
                 // (1-6, P, F/Ctrl+F, Ctrl+C/A/Z/Y/V/D, Delete, etc.). Espaço

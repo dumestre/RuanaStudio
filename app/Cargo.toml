@@ -9,6 +9,7 @@ daw-core = { path = "../crates/daw-core" }
 daw-media = { path = "../crates/daw-media" }
 daw-audio = { path = "../crates/daw-audio" }
 daw-midi = { path = "../crates/daw-midi" }
+daw-project = { path = "../crates/daw-project" }
 timeline-render = { path = "../timeline-render", default-features = false }
 slint = { workspace = true, features = ["renderer-skia", "raw-window-handle-06", "unstable-wgpu-30"] }
 winit = "0.30"

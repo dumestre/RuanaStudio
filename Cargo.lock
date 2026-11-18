@@ -4567,6 +4567,7 @@ dependencies = [
  "daw-core",
  "daw-media",
  "daw-midi",
+ "daw-project",
  "i-slint-backend-winit",
  "libloading 0.9.0",
  "png",

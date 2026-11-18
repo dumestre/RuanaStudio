@@ -45,7 +45,11 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 - [x] **0.1** Formato de projeto JSON versionado em `crates/daw-project`
       (DTOs + `save`/`load` + testes de round-trip) — `FORMAT_VERSION = 1`,
       extensão `.ruana`, 5 testes verdes (`cargo test -p daw-project`)
-- [ ] **0.2** `Salvar / Salvar como / Abrir` + `dirty flag` + confirmação ao fechar
+- [x] **0.2a** `Salvar / Salvar como` (`Ctrl+S` / `Ctrl+Shift+S`) + `dirty flag`
+      + título da janela com `*` — `app/src/project_io.rs`
+- [ ] **0.2b** `Abrir` (`Ctrl+O`) com resync completo (engine de clips, modelos
+      do Slint, mixer, meters, waveform cache, transporte)
+- [ ] **0.2c** Confirmação ao fechar com alterações pendentes
 - [ ] **0.3** Autosave periódico + recuperação
 - [ ] **0.4** Revisão do undo/redo (hoje grava `DocumentEvent` parcial)
 
@@ -150,3 +154,4 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 | 2026-11-17 | `b4df499` | fix(gpu): `COPY_DST` nos buffers da timeline (crash na abertura) |
 | 2026-11-17 | _este commit_ | docs: criação deste plano |
 | 2026-11-17 | _este commit_ | feat(project): formato `.ruana` versionado (Fase 0.1) |
+| 2026-11-17 | _este commit_ | feat(app): `Ctrl+S` / `Ctrl+Shift+S` salva `.ruana` + dirty flag (Fase 0.2a) |
