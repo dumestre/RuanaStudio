@@ -64,8 +64,6 @@ export component Toolbar inherits Rectangle {
     drag-area := TouchArea {
         x: 0px;
         y: 0px;
-        width: parent.width;
-        height: parent.height;
 
         moved => {
             if (self.pressed) {
@@ -111,7 +109,6 @@ export component Toolbar inherits Rectangle {
 
         spacing: 16px;
 
-        alignment: LayoutAlignment.stretch;
         cross-axis-alignment: CrossAxisAlignment.center;
 
 
@@ -122,7 +119,6 @@ export component Toolbar inherits Rectangle {
         HorizontalLayout {
             spacing: 1px;
 
-            alignment: LayoutAlignment.stretch;
             cross-axis-alignment: CrossAxisAlignment.center;
 
             Image {
@@ -140,7 +136,6 @@ export component Toolbar inherits Rectangle {
         HorizontalLayout {
             spacing: 2px;
 
-            alignment: LayoutAlignment.stretch;
             cross-axis-alignment: CrossAxisAlignment.center;
 
             Button {
@@ -251,7 +246,6 @@ export component Toolbar inherits Rectangle {
             // ----------------------------------------------------
 
             ProjectKey {
-                border-radius: 2px;
                 drop-shadow-blur: 3px;
                 drop-shadow-color: Theme.shadow;
                 drop-shadow-offset-y: 3px;
@@ -282,7 +276,7 @@ export component Toolbar inherits Rectangle {
                     resting-bg: Theme.surface-high;
 
                     icon: @image-url("icons/undo.svg");
-                    icon-size: 16px;
+
                     icon-color: Theme.text-primary;
 
                     borderless: true;
@@ -301,7 +295,7 @@ export component Toolbar inherits Rectangle {
                     resting-bg: Theme.surface-high;
 
                     icon: @image-url("icons/redo.svg");
-                    icon-size: 16px;
+
                     icon-color: Theme.text-primary;
 
                     borderless: true;
@@ -325,7 +319,7 @@ export component Toolbar inherits Rectangle {
                     icon: @image-url("icons/follow.svg");
                     filled-icon: @image-url("icons/follow_filled.svg");
 
-                    icon-size: 16px;
+
                     icon-color: Theme.text-primary;
 
                     height: 18px;
@@ -344,7 +338,6 @@ export component Toolbar inherits Rectangle {
                     toggled-fg: Theme.on-accent;
                     toggled-icon-color: Theme.on-accent;
 
-                    subtle-toggled: false;
                     borderless: true;
 
                     clicked => {
@@ -357,7 +350,7 @@ export component Toolbar inherits Rectangle {
                     icon: @image-url("icons/snap.svg");
                     filled-icon: @image-url("icons/snap_filled.svg");
 
-                    icon-size: 16px;
+
                     icon-color: Theme.text-primary;
 
                     height: 18px;
@@ -376,7 +369,6 @@ export component Toolbar inherits Rectangle {
                     toggled-fg: Theme.on-accent;
                     toggled-icon-color: Theme.on-accent;
 
-                    subtle-toggled: false;
                     borderless: true;
 
                     clicked => {
@@ -467,7 +459,6 @@ export component Toolbar inherits Rectangle {
         HorizontalLayout {
             spacing: 4px;
 
-            alignment: LayoutAlignment.stretch;
             cross-axis-alignment: CrossAxisAlignment.center;
 
 
@@ -476,23 +467,14 @@ export component Toolbar inherits Rectangle {
             // ----------------------------------------------------
 
             Button {
-                width: 12px;
-                height: 12px;
+                width: 19px;
+                height: 19px;
 
-                drop-shadow-blur: 3px;
-                drop-shadow-color: Theme.shadow;
-                drop-shadow-offset-y: 3px;
-                drop-shadow-offset-x: 1.5px;
+                icon: @image-url("icons/minimize.svg");
+                icon-color: Theme.text-primary;
 
-                preferred-height: 0px;
-                preferred-width: 0px;
-
-                text: "";
-
-                corner-radius: 4px;
-
-                resting-bg:
-                    #FEBC2E;
+                resting-bg: Theme.surface-high;
+                hover-bg: Theme.surface-high;
 
                 borderless: true;
 
@@ -507,26 +489,20 @@ export component Toolbar inherits Rectangle {
             // ----------------------------------------------------
 
             Button {
-                width: 12px;
-                height: 12px;
+                width: 20px;
+                height: 20px;
 
-                drop-shadow-blur: 3px;
-                drop-shadow-color: Theme.shadow;
-                drop-shadow-offset-y: 3px;
-                drop-shadow-offset-x: 1.5px;
+                icon: root.full-screen ? @image-url("icons/restore.svg") : @image-url("icons/maximize.svg");
+                icon-color: Theme.text-primary;
 
-                text: "";
-
-                corner-radius: 4px;
-
-                resting-bg:
-                    #28C840;
+            
+                resting-bg: Theme.surface-high;
+                hover-bg: Theme.surface-high;
 
                 borderless: true;
 
                 clicked => {
-                    root.full-screen =
-                        !root.full-screen;
+                    root.full-screen = !root.full-screen;
                 }
             }
 
@@ -536,20 +512,15 @@ export component Toolbar inherits Rectangle {
             // ----------------------------------------------------
 
             Button {
-                width: 12px;
-                height: 12px;
+                width: 20px;
+                height: 20px;
 
-                drop-shadow-blur: 3px;
-                drop-shadow-color: Theme.shadow;
-                drop-shadow-offset-y: 3px;
-                drop-shadow-offset-x: 1.5px;
+                icon: @image-url("icons/close.svg");
+                icon-color: Theme.text-primary;
 
-                text: "";
-
-                corner-radius: 4px;
-
-                resting-bg:
-                    #FF5F57;
+                
+                resting-bg: Theme.surface-high;
+                hover-bg: #FF5F57;
 
                 borderless: true;
 

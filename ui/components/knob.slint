@@ -122,8 +122,6 @@ export component PanKnob inherits Knob {
     centered: true;
     // Padrão clássico de DAW (270 graus, indo de -135° até +135°)
     arc-start: -135deg; 
-    arc-sweep: 270deg;
-    value: 0.5; // O centro perfeito
 }
 
 export component KnobWithoutText inherits Knob {
@@ -133,8 +131,5 @@ export component KnobWithoutText inherits Knob {
 
 export component PanKnobWithoutText inherits KnobWithoutText {
     centered: true;
-    height: 36px;
     arc-start: -135deg;
-    arc-sweep: 270deg;
-    value: 0.5;
 }

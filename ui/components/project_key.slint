@@ -19,7 +19,6 @@ export component ProjectKey inherits Rectangle {
     border-radius: 2px;
 
     HorizontalLayout {
-        alignment: LayoutAlignment.stretch;
         cross-axis-alignment: CrossAxisAlignment.center;
         padding-left: 4px;
         spacing: 4px;
@@ -35,7 +34,6 @@ export component ProjectKey inherits Rectangle {
 
     height:
         parent.height;
-            horizontal-alignment: TextHorizontalAlignment.start;
 
     vertical-alignment:
         center;
@@ -55,11 +53,9 @@ Text {
         Theme.is-paper
             ? Theme.text-primary
             : Theme.accent;
-    font-family: "";
 
     height:
         parent.height;
-    horizontal-alignment: TextHorizontalAlignment.start;
 
     vertical-alignment:
         center;
@@ -85,7 +81,6 @@ Text {
             ScrollView {
                 VerticalLayout {
                     // Mudei o spacing para 0 para que o efeito zebra fique contínuo
-                    spacing: 0px;
                     padding: 1px;
 
                     // Adicionado o [index] para capturar a posição do item na lista
