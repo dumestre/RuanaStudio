@@ -257,6 +257,16 @@ pub fn install(
                     apply_mixer();
                 });
             }
+            {
+                let project = project.clone();
+                let apply_mixer = apply_mixer.clone();
+                p.on_mixer_insert_moved(move |channel, from, to| {
+                    project
+                        .borrow_mut()
+                        .move_mixer_insert(channel as usize, from as usize, to as usize);
+                    apply_mixer();
+                });
+            }
 
             // Redimensionamento da janela flutuante pelo canto inferior direito.
             {

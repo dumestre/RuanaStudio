@@ -63,6 +63,7 @@ export component Mixer inherits Rectangle {
     callback channel-insert-added(int);
     callback channel-insert-removed(int, int);
     callback channel-insert-toggled(int, int);
+    callback channel-insert-moved(int, int, int);
     callback channel-clip-cleared(int);
 
     // Altura natural do conteúdo (usada pelo Rust para dimensionar a
@@ -155,6 +156,7 @@ export component Mixer inherits Rectangle {
                         insert-add() => { root.channel-insert-added(i); }
                         insert-remove(slot) => { root.channel-insert-removed(i, slot); }
                         insert-toggle(slot) => { root.channel-insert-toggled(i, slot); }
+                        insert-move(from, to) => { root.channel-insert-moved(i, from, to); }
                         clear-clip(idx) => { root.channel-clip-cleared(idx); }
                     }
                 }
@@ -200,6 +202,7 @@ export component Mixer inherits Rectangle {
                 insert-add() => { root.channel-insert-added(root.mutes.length - 1); }
                 insert-remove(slot) => { root.channel-insert-removed(root.mutes.length - 1, slot); }
                 insert-toggle(slot) => { root.channel-insert-toggled(root.mutes.length - 1, slot); }
+                insert-move(from, to) => { root.channel-insert-moved(root.mutes.length - 1, from, to); }
                 clear-clip(idx) => { root.channel-clip-cleared(idx); }
             }
         }

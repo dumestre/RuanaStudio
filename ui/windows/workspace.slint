@@ -486,6 +486,7 @@ export component Workspace inherits Rectangle {
     callback mixer-insert-removed(int, int);
 
     callback mixer-insert-toggled(int, int);
+    callback mixer-insert-moved(int, int, int);
     callback mixer-copy-slots(int);
     callback mixer-paste-slots(int);
     callback mixer-undo-requested();
@@ -1842,6 +1843,19 @@ export component Workspace inherits Rectangle {
                             root.mixer-insert-toggled(
                                 ch,
                                 slot
+                            );
+                        }
+
+
+                        channel-insert-moved(
+                            ch,
+                            from,
+                            to
+                        ) => {
+                            root.mixer-insert-moved(
+                                ch,
+                                from,
+                                to
                             );
                         }
 

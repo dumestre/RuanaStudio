@@ -38,6 +38,7 @@ export component FloatPanel inherits Window {
     callback mixer-insert-added(int);
     callback mixer-insert-removed(int, int);
     callback mixer-insert-toggled(int, int);
+    callback mixer-insert-moved(int, int, int);
     callback resize-cancel();
     callback resize-move(length, length);
     callback resize-end();
@@ -133,6 +134,7 @@ export component FloatPanel inherits Window {
                 channel-insert-added(ch) => { root.mixer-insert-added(ch); }
                 channel-insert-removed(ch, slot) => { root.mixer-insert-removed(ch, slot); }
                 channel-insert-toggled(ch, slot) => { root.mixer-insert-toggled(ch, slot); }
+                channel-insert-moved(ch, from, to) => { root.mixer-insert-moved(ch, from, to); }
             }
 
             SamplerArea {

@@ -598,6 +598,14 @@ pub fn setup(
                 .toggle_mixer_insert(channel as usize, slot as usize);
             apply_mixer();
         });
+        let project_mv = project.clone();
+        let apply_mixer = handles.apply_mixer_state.clone();
+        ui.on_mixer_insert_moved(move |channel, from, to| {
+            project_mv
+                .borrow_mut()
+                .move_mixer_insert(channel as usize, from as usize, to as usize);
+            apply_mixer();
+        });
     }
 
     // Copiar/colar a cadeia de inserts do canal selecionado no mixer.

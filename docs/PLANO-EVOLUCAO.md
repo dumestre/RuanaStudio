@@ -74,7 +74,9 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 - [x] **1A.3** Scroll horizontal já vinha do `Flickable`; agora com **largura de
       canal ajustável** (72–148px, passo 14) pelos botões `−`/`+` do
       `MixerHeader`. O `content-width` acompanha e o scroll se recalcula
-- [ ] **1A.4** Reordenar inserts por drag
+- [x] **1A.4** Reordenar inserts por drag — arrastar pelo número/nome do slot;
+      o gesto vira `move_mixer_insert` no core (uma operação de undo) e a
+      cadeia é re-projetada em todas as janelas do mixer
 - [ ] **1A.5** Rename inline (double-click) em canal e inserts
 - [ ] **1A.6** Cor do canal sincronizada com a track (`track-colors`)
 - [ ] **1A.7** Meters: peak/RMS, escala dB, clip-hold, reset por clique
@@ -169,3 +171,4 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 | 2026-11-17 | _este commit_ | feat(app): `Ctrl+O` abre `.ruana` com rebind do documento (Fase 0.2b) |
 | 2026-11-17 | _este commit_ | feat(mixer): seções colapsáveis + master pinado com separador (Fase 1A.1/1A.2) |
 | 2026-11-17 | _este commit_ | feat(mixer): largura de faixa ajustável no header (Fase 1A.3) |
+| 2026-11-17 | _este commit_ | feat(mixer): reordenar inserts por drag (Fase 1A.4) |

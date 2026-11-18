@@ -9,14 +9,29 @@ export component InsertSlot inherits Rectangle {
     in property <string> name: "";
     in property <bool> enabled: true;
 
+    // Feedback do arrasto: o slot que está sendo arrastado e o alvo provisório.
+    in property <bool> dragging: false;
+    in property <bool> drop-target: false;
+
     callback toggle();
     callback remove();
 
+    // Reordenar por arrasto. A origem e o número de linhas percorridas são
+    // resolvidos no `MixerChannel`, que conhece a lista inteira.
+    callback drag-start(int);
+    callback drag-move(int, int);
+    callback drag-drop(int, int);
+
+    // Altura de um slot + espaçamento da lista (20px + 2px): converte o
+    // deslocamento em pixels no número de posições percorridas.
+    private property <length> press-y: 0px;
+    private property <bool> drag-active: false;
+
     height: 20px;
-    background: Theme.base;
+    background: root.dragging ? Theme.surface-high : Theme.base;
     border-radius: 3px;
     border-width: 1px;
-    border-color: Theme.border;
+    border-color: (root.dragging || root.drop-target) ? Theme.accent : Theme.border;
 
     states [
         disabled when !root.enabled: {
@@ -48,6 +63,38 @@ export component InsertSlot inherits Rectangle {
         vertical-alignment: center;
         overflow: TextOverflow.elide;
         text: root.name;
+    }
+
+    // Arrastar pelo número/nome reordena. A faixa da direita (34px) fica de
+    // fora para não roubar o clique do power nem do remover.
+    drag-area := TouchArea {
+        x: 0;
+        width: parent.width - 34px;
+        height: 100%;
+        mouse-cursor: move;
+
+        pointer-event(ev) => {
+            if (ev.kind == PointerEventKind.down) {
+                root.press-y = self.mouse-y;
+                root.drag-active = true;
+                root.drag-start(root.slot-index);
+            } else if (ev.kind == PointerEventKind.move) {
+                if (root.drag-active) {
+                    root.drag-move(
+                        root.slot-index,
+                        Math.round((self.mouse-y - root.press-y) / 1px / 22)
+                    );
+                }
+            } else {
+                if (root.drag-active) {
+                    root.drag-active = false;
+                    root.drag-drop(
+                        root.slot-index,
+                        Math.round((self.mouse-y - root.press-y) / 1px / 22)
+                    );
+                }
+            }
+        }
     }
 
     // Power (bypass)

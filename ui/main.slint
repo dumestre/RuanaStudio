@@ -430,6 +430,7 @@ export component MainWindow inherits Window {
     callback mixer-insert-added(int);
     callback mixer-insert-removed(int, int);
     callback mixer-insert-toggled(int, int);
+    callback mixer-insert-moved(int, int, int);
     callback mixer-copy-slots(int);
     callback mixer-paste-slots(int);
     callback mixer-undo-requested();
@@ -946,6 +947,7 @@ export component MainWindow inherits Window {
             mixer-insert-added(ch) => { root.mixer-insert-added(ch); }
             mixer-insert-removed(ch, slot) => { root.mixer-insert-removed(ch, slot); }
             mixer-insert-toggled(ch, slot) => { root.mixer-insert-toggled(ch, slot); }
+            mixer-insert-moved(ch, from, to) => { root.mixer-insert-moved(ch, from, to); }
             mixer-copy-slots(ch) => { root.mixer-copy-slots(ch); }
             mixer-paste-slots(ch) => { root.mixer-paste-slots(ch); }
             mixer-undo-requested() => { root.mixer-undo-requested(); }

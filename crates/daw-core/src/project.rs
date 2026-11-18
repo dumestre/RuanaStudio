@@ -1180,6 +1180,22 @@ impl Project {
         self.set_mixer_inserts(channel, inserts)
     }
 
+    /// Move um insert dentro do canal (arrastar para reordenar).
+    ///
+    /// Retorna `false` se o canal não existe, se algum dos índices está fora
+    /// do intervalo ou se origem e destino são o mesmo slot.
+    pub fn move_mixer_insert(&mut self, channel: usize, from: usize, to: usize) -> bool {
+        let Some(mut inserts) = self.mixer_channel(channel).map(|m| m.inserts.clone()) else {
+            return false;
+        };
+        if from >= inserts.len() || to >= inserts.len() || from == to {
+            return false;
+        }
+        let slot = inserts.remove(from);
+        inserts.insert(to, slot);
+        self.set_mixer_inserts(channel, inserts)
+    }
+
     /// Alterna o bypass de um insert. Retorna `false` se o canal ou o slot
     /// não existem.
     pub fn toggle_mixer_insert(&mut self, channel: usize, index: usize) -> bool {
@@ -1820,6 +1836,27 @@ mod tests {
         assert!(!project.add_mixer_insert(999));
         assert!(!project.remove_mixer_insert(1, 99));
         assert!(!project.toggle_mixer_insert(1, 99));
+    }
+
+    #[test]
+    fn move_mixer_insert_reordena_a_cadeia() {
+        let mut project = demo();
+        // Track 1 (índice 1) começa com dois inserts: "Insert 1" e "Insert 2".
+        let first = project.tracks[1].mixer.inserts[0].name.clone();
+        let second = project.tracks[1].mixer.inserts[1].name.clone();
+
+        assert!(project.move_mixer_insert(1, 0, 1));
+        assert_eq!(project.tracks[1].mixer.inserts[0].name, second);
+        assert_eq!(project.tracks[1].mixer.inserts[1].name, first);
+
+        // Mesmo slot / índices inválidos não fazem nada nem empilham undo.
+        assert!(!project.move_mixer_insert(1, 1, 1));
+        assert!(!project.move_mixer_insert(1, 0, 99));
+        assert!(!project.move_mixer_insert(999, 0, 1));
+
+        // O movimento entra no histórico como uma única operação.
+        assert!(project.undo());
+        assert_eq!(project.tracks[1].mixer.inserts[0].name, first);
     }
 
     // =====================================================

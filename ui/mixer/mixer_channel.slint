@@ -79,6 +79,12 @@ export component MixerChannel inherits Rectangle {
     callback insert-add();
     callback insert-remove(int);
     callback insert-toggle(int);
+    /// Move um insert dentro da cadeia (arrastar para reordenar).
+    callback insert-move(int, int);
+
+    // Origem e alvo provisório do arrasto (-1 = nenhum).
+    private property <int> drag-from: -1;
+    private property <int> drag-to: -1;
 
     // Clique na luz de clip: apaga o latch daquele canal.
     callback clear-clip(int);
@@ -322,6 +328,9 @@ export component MixerChannel inherits Rectangle {
 
                         slot-index: j;
 
+                        dragging: root.drag-from == j;
+                        drop-target: root.drag-to == j && root.drag-to != root.drag-from;
+
                         name: root.insert-names[
                             root.channel-index * root.max-slot-count + j
                         ];
@@ -336,6 +345,33 @@ export component MixerChannel inherits Rectangle {
 
                         remove() => {
                             root.insert-remove(j);
+                        }
+
+                        drag-start(slot) => {
+                            root.drag-from = slot;
+                            root.drag-to = slot;
+                        }
+
+                        drag-move(slot, rows) => {
+                            if (root.drag-from >= 0) {
+                                root.drag-to = Math.max(
+                                    0,
+                                    Math.min(root.insert-count - 1, slot + rows)
+                                );
+                            }
+                        }
+
+                        drag-drop(slot, rows) => {
+                            if (root.drag-from >= 0) {
+                                // O destino é a linha onde o ponteiro soltou,
+                                // não a posição visual do slot arrastado.
+                                root.insert-move(
+                                    root.drag-from,
+                                    Math.max(0, Math.min(root.insert-count - 1, slot + rows))
+                                );
+                            }
+                            root.drag-from = -1;
+                            root.drag-to = -1;
                         }
                     }
                 }
