@@ -151,6 +151,7 @@ pub fn clip_row(model: &slint::VecModel<ClipData>, id: i32) -> Option<usize> {
 /// de dentro de uma mutação do core (reentrância proibida).
 pub fn apply_change(
     tracks_model: &slint::VecModel<slint::SharedString>,
+    track_colors_model: &slint::VecModel<i32>,
     clips_model: &slint::VecModel<ClipData>,
     event: &DocumentEvent,
     undo: bool,
@@ -182,6 +183,11 @@ pub fn apply_change(
         DocumentEvent::TrackRenamed { index, new, .. } => {
             if *index < tracks_model.row_count() {
                 tracks_model.set_row_data(*index, new.clone().into());
+            }
+        }
+        DocumentEvent::TrackColorChanged { index, new, .. } => {
+            if *index < track_colors_model.row_count() {
+                track_colors_model.set_row_data(*index, *new as i32);
             }
         }
         DocumentEvent::ClipAdded(clip) => {
@@ -302,6 +308,7 @@ pub fn apply_change(
 pub fn bind_document_events(
     project: &Project,
     tracks_model: Rc<slint::VecModel<slint::SharedString>>,
+    track_colors_model: Rc<slint::VecModel<i32>>,
     clips_model: Rc<slint::VecModel<ClipData>>,
     pool_clips_model: Rc<slint::VecModel<ClipData>>,
     waveforms: Rc<RefCell<WaveformCache>>,
@@ -311,6 +318,7 @@ pub fn bind_document_events(
         let wf = waveforms.borrow();
         apply_change(
             &tracks_model,
+            &track_colors_model,
             &clips_model,
             event,
             kind == ChangeKind::Undo,

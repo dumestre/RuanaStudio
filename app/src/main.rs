@@ -337,6 +337,7 @@ pub fn setup(
     bind_document_events(
         &project.borrow(),
         tracks_model.clone(),
+        track_colors_model.clone(),
         clips_model.clone(),
         pool_clips_model,
         waveforms.clone(),
@@ -623,6 +624,14 @@ pub fn setup(
                 name.as_str(),
             );
             apply_mixer();
+        });
+        // Cor: o evento do documento já atualiza o `track-colors` da UI
+        // (models::apply_change), então não precisa reaplicar o mixer.
+        let project_color = project.clone();
+        ui.on_mixer_channel_color_picked(move |channel, color| {
+            project_color
+                .borrow_mut()
+                .set_track_color(channel as usize, color as u8);
         });
     }
 

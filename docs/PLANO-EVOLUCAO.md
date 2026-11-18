@@ -80,7 +80,10 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 - [x] **1A.5** Rename inline por double-click: nome do canal (no cabeçalho) e
       nome do insert. O `Mixer` passou a receber `names` de verdade — antes
       usava a lista fixa de exemplo e renomear não aparecia
-- [ ] **1A.6** Cor do canal sincronizada com a track (`track-colors`)
+- [x] **1A.6** Cor do canal sincronizada com a track (`track-colors`) e
+      **editável**: botão direito no cabeçalho abre a paleta (20 cores de
+      `ClipPalette`); a escolha vira `TrackColorChanged` no core e o mesmo
+      `track-colors` alimenta a timeline
 - [ ] **1A.7** Meters: peak/RMS, escala dB, clip-hold, reset por clique
 - [ ] **1A.8** Estado do mixer persistido (altura, seções, ordem)
 
@@ -175,3 +178,4 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 | 2026-11-17 | _este commit_ | feat(mixer): largura de faixa ajustável no header (Fase 1A.3) |
 | 2026-11-17 | _este commit_ | feat(mixer): reordenar inserts por drag (Fase 1A.4) |
 | 2026-11-17 | _este commit_ | feat(mixer): rename inline de canal e insert (Fase 1A.5) |
+| 2026-11-17 | _este commit_ | feat(mixer): cor do canal sincronizada e editável (Fase 1A.6) |

@@ -66,6 +66,7 @@ export component Mixer inherits Rectangle {
     callback channel-insert-moved(int, int, int);
     callback channel-insert-renamed(int, int, string);
     callback channel-renamed(int, string);
+    callback channel-color-picked(int, int);
     callback channel-clip-cleared(int);
 
     // Altura natural do conteúdo (usada pelo Rust para dimensionar a
@@ -129,7 +130,8 @@ export component Mixer inherits Rectangle {
                         name: root.names[i];
                         channel-color: i < root.track-colors.length && root.track-colors[i] != 0
                             ? ClipPalette.colors[Math.mod(root.track-colors[i], ClipPalette.colors.length)]
-                            : (i == 2 ? Theme.clip-audio : Theme.clip-midi);
+                            : Theme.accent;
+                        color-index: i < root.track-colors.length ? root.track-colors[i] : 0;
                         channel-index: i;
                         selected: root.selected-channel == i;
                         select-requested(channel) => { root.selected-channel = channel; }
@@ -161,6 +163,7 @@ export component Mixer inherits Rectangle {
                         insert-move(from, to) => { root.channel-insert-moved(i, from, to); }
                         insert-rename(slot, nome) => { root.channel-insert-renamed(i, slot, nome); }
                         rename(nome) => { root.channel-renamed(i, nome); }
+                        color-picked(cor) => { root.channel-color-picked(i, cor); }
                         clear-clip(idx) => { root.channel-clip-cleared(idx); }
                     }
                 }

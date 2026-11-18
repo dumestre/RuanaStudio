@@ -1,4 +1,5 @@
 import { Theme } from "../theme.slint";
+import { ClipPalette } from "../clip_palette.slint";
 import { Button } from "../components/button.slint";
 import { PanControl } from "pan_control.slint";
 import { Meter } from "../components/meter.slint";
@@ -22,6 +23,14 @@ export component MixerChannel inherits Rectangle {
 
     /// Largura da faixa (narrow/wide), controlada pelo `Mixer`.
     in property <length> strip-width: 100px;
+
+    /// Índice de cor da trilha na paleta (0 = padrão).
+    in property <int> color-index: 0;
+    /// Nova cor escolhida no popup (índice da paleta).
+    callback color-picked(int);
+
+    // Popup de paleta aberto pelo botão direito no cabeçalho.
+    private property <bool> color-picker-open: false;
 
     in property <length> available-height: 200px;
 
@@ -184,13 +193,77 @@ export component MixerChannel inherits Rectangle {
         }
 
         // Double-click no nome entra em edição (a master não renomeia: o
-        // nome dela é fixo).
+        // nome dela é fixo). Botão direito abre a paleta de cor.
         TouchArea {
             enabled: !root.is-master;
             mouse-cursor: text;
             double-clicked => {
                 root.draft-name = root.name;
                 root.editing-name = true;
+            }
+            pointer-event(ev) => {
+                if (ev.kind == PointerEventKind.down
+                    && ev.button == PointerEventButton.right) {
+                    root.color-picker-open = !root.color-picker-open;
+                }
+            }
+        }
+    }
+
+    // Paleta de cor do canal: 20 swatches (2 × 10) de `ClipPalette`.
+    // Sincronizada com a trilha: escolher aqui muda `track.color`, que é a
+    // mesma fonte do cabeçalho da timeline.
+    if root.color-picker-open && !root.is-master: Rectangle {
+        x: 2px;
+        y: 24px;
+        width: parent.width - 4px;
+        height: 43px;
+        background: Theme.surface-high;
+        border-radius: 3px;
+        border-width: 1px;
+        border-color: Theme.border;
+        z: 50;
+
+        VerticalLayout {
+            padding: 3px;
+            spacing: 2px;
+
+            HorizontalLayout {
+                spacing: 2px;
+                for c[idx] in ClipPalette.top: Rectangle {
+                    horizontal-stretch: 1;
+                    height: 16px;
+                    border-radius: 2px;
+                    background: ClipPalette.colors[idx];
+                    border-width: root.color-index == idx ? 2px : 0px;
+                    border-color: Theme.text-primary;
+
+                    TouchArea {
+                        clicked => {
+                            root.color-picked(idx);
+                            root.color-picker-open = false;
+                        }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                spacing: 2px;
+                for c[idx] in ClipPalette.bottom: Rectangle {
+                    horizontal-stretch: 1;
+                    height: 16px;
+                    border-radius: 2px;
+                    background: ClipPalette.colors[idx + 10];
+                    border-width: root.color-index == idx + 10 ? 2px : 0px;
+                    border-color: Theme.text-primary;
+
+                    TouchArea {
+                        clicked => {
+                            root.color-picked(idx + 10);
+                            root.color-picker-open = false;
+                        }
+                    }
+                }
             }
         }
     }

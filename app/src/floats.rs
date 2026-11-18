@@ -294,6 +294,14 @@ pub fn install(
                     apply_mixer();
                 });
             }
+            {
+                let project = project.clone();
+                p.on_mixer_channel_color_picked(move |channel, color| {
+                    project
+                        .borrow_mut()
+                        .set_track_color(channel as usize, color as u8);
+                });
+            }
 
             // Redimensionamento da janela flutuante pelo canto inferior direito.
             {

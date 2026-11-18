@@ -40,6 +40,13 @@ pub enum DocumentEvent {
         old: String,
         new: String,
     },
+    /// Mudança de cor da trilha (paleta do mixer/cabeçalho).
+    TrackColorChanged {
+        /// Posição da trilha no projeto (mesmo endereço do mixer).
+        index: usize,
+        old: u8,
+        new: u8,
+    },
     ClipAdded(Clip),
     ClipSliced {
         /// Clip antes do corte (para restaurar no undo).
@@ -271,6 +278,11 @@ impl Project {
                     track.name = new.clone();
                 }
             }
+            DocumentEvent::TrackColorChanged { index, new, .. } => {
+                if let Some(track) = self.tracks.get_mut(*index) {
+                    track.color = *new;
+                }
+            }
             DocumentEvent::ClipAdded(clip) => {
                 self.clips.push(clip.clone());
             }
@@ -350,6 +362,11 @@ impl Project {
             DocumentEvent::TrackRenamed { index, old, .. } => {
                 if let Some(track) = self.tracks.get_mut(*index) {
                     track.name = old.clone();
+                }
+            }
+            DocumentEvent::TrackColorChanged { index, old, .. } => {
+                if let Some(track) = self.tracks.get_mut(*index) {
+                    track.color = *old;
                 }
             }
             DocumentEvent::ClipAdded(clip) => {
@@ -592,6 +609,26 @@ impl Project {
             index,
             old,
             new: name,
+        };
+        self.emit(&event, ChangeKind::Apply);
+        self.history.record(event);
+        true
+    }
+
+    /// Define a cor da trilha (índice da paleta). Retorna `false` se o
+    /// índice não existe ou a cor não mudou.
+    pub fn set_track_color(&mut self, index: usize, color: u8) -> bool {
+        let Some(track) = self.tracks.get_mut(index) else {
+            return false;
+        };
+        if track.color == color {
+            return false;
+        }
+        let old = std::mem::replace(&mut track.color, color);
+        let event = DocumentEvent::TrackColorChanged {
+            index,
+            old,
+            new: color,
         };
         self.emit(&event, ChangeKind::Apply);
         self.history.record(event);
@@ -1943,6 +1980,22 @@ mod tests {
 
         assert!(project.undo());
         assert_eq!(project.tracks[0].mixer.inserts[0].name, old_insert);
+    }
+
+    #[test]
+    fn cor_da_trilha_com_undo() {
+        let mut project = demo();
+        let old = project.tracks[0].color;
+        let new = if old == 3 { 4 } else { 3 };
+
+        assert!(project.set_track_color(0, new));
+        assert_eq!(project.tracks[0].color, new);
+        // Escolher a cor atual não empilha undo.
+        assert!(!project.set_track_color(0, new));
+        assert!(!project.set_track_color(999, 1));
+
+        assert!(project.undo());
+        assert_eq!(project.tracks[0].color, old);
     }
 
     // =====================================================

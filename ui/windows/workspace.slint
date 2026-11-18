@@ -489,6 +489,7 @@ export component Workspace inherits Rectangle {
     callback mixer-insert-moved(int, int, int);
     callback mixer-insert-renamed(int, int, string);
     callback mixer-channel-renamed(int, string);
+    callback mixer-channel-color-picked(int, int);
     callback mixer-copy-slots(int);
     callback mixer-paste-slots(int);
     callback mixer-undo-requested();
@@ -1880,6 +1881,14 @@ export component Workspace inherits Rectangle {
                             root.mixer-channel-renamed(
                                 ch,
                                 nome
+                            );
+                        }
+
+
+                        channel-color-picked(ch, cor) => {
+                            root.mixer-channel-color-picked(
+                                ch,
+                                cor
                             );
                         }
 
