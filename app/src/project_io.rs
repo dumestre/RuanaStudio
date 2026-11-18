@@ -55,6 +55,11 @@ impl ProjectIo {
         self.dirty.set(false);
     }
 
+    /// Define o arquivo aberto (após "Salvar como" ou abrir).
+    pub fn set_path(&mut self, path: PathBuf) {
+        self.path = Some(path);
+    }
+
     /// Nome curto para a barra de título.
     pub fn display_name(&self) -> String {
         self.path
@@ -141,8 +146,7 @@ pub fn choose_save_path(current: Option<&Path>) -> Option<PathBuf> {
 
 /// Fallback (Linux/macOS): usa `rfd`, como no seletor de áudio.
 #[cfg(not(windows))]
-pub fn choose_save_path(current: Option<&Path>) -> Option<PathBuf> {
-    let mut dialog = rfd::FileDialog::new()
+pub fn choose_save_path(current: Option<&Path>) -> Option<PathBuf> {    let mut dialog = rfd::FileDialog::new()
         .add_filter("Ruana Project", &[FILE_EXTENSION])
         .set_file_name(
             current
@@ -154,6 +158,44 @@ pub fn choose_save_path(current: Option<&Path>) -> Option<PathBuf> {
         dialog = dialog.set_directory(dir);
     }
     dialog.save_file()
+}
+
+/// Diálogo nativo "Abrir". Devolve `None` se o usuário cancelar.
+#[cfg(windows)]
+pub fn choose_open_path() -> Option<PathBuf> {
+    use std::mem::size_of;
+    use windows_sys::Win32::Foundation::HWND;
+    use windows_sys::Win32::UI::Controls::Dialogs::{
+        GetOpenFileNameW, OFN_FILEMUSTEXIST, OFN_PATHMUSTEXIST, OPENFILENAMEW,
+    };
+    use windows_sys::core::{PCWSTR, PWSTR};
+
+    let filter: Vec<u16> =
+        "Ruana Project\0*.ruana\0All Files\0*.*\0\0".encode_utf16().collect();
+    let mut path = vec![0u16; 32768];
+
+    let mut dialog = OPENFILENAMEW::default();
+    dialog.lStructSize = size_of::<OPENFILENAMEW>() as u32;
+    dialog.hwndOwner = HWND::default();
+    dialog.lpstrFilter = PCWSTR::from(filter.as_ptr());
+    dialog.lpstrFile = PWSTR::from(path.as_mut_ptr());
+    dialog.nMaxFile = path.len() as u32;
+    dialog.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+
+    if unsafe { GetOpenFileNameW(&mut dialog) } != 0 {
+        let len = path.iter().position(|c| *c == 0).unwrap_or(0);
+        Some(PathBuf::from(String::from_utf16_lossy(&path[..len])))
+    } else {
+        None
+    }
+}
+
+/// Fallback (Linux/macOS).
+#[cfg(not(windows))]
+pub fn choose_open_path() -> Option<PathBuf> {
+    rfd::FileDialog::new()
+        .add_filter("Ruana Project", &[FILE_EXTENSION])
+        .pick_file()
 }
 
 #[cfg(test)]

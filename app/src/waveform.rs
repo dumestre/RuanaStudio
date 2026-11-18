@@ -198,6 +198,13 @@ impl WaveformCache {
         self.map.is_empty()
     }
 
+    /// Esvazia o cache. Abrir outro projeto invalida todos os ids anteriores
+    /// (os ids vêm do arquivo), então a waveform antiga não pode ser reusada.
+    pub fn clear(&mut self) {
+        self.map.clear();
+        self.order.borrow_mut().clear();
+    }
+
     pub fn get(&self, id: &u64) -> Option<&CachedWave> {
         let hit = self.map.get(id)?;
         let mut order = self.order.borrow_mut();

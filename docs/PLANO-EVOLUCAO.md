@@ -47,9 +47,13 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
       extensão `.ruana`, 5 testes verdes (`cargo test -p daw-project`)
 - [x] **0.2a** `Salvar / Salvar como` (`Ctrl+S` / `Ctrl+Shift+S`) + `dirty flag`
       + título da janela com `*` — `app/src/project_io.rs`
-- [ ] **0.2b** `Abrir` (`Ctrl+O`) com resync completo (engine de clips, modelos
-      do Slint, mixer, meters, waveform cache, transporte)
+- [x] **0.2b** `Abrir` (`Ctrl+O`) com resync do documento: transporte, modelos
+      de tracks/cores/clips (mutados com `set_vec`, sem trocar os `Rc`),
+      inserts, mixer e barras da timeline. A engine wgpu se re-espelha no
+      tick seguinte via `clips_flag` — `app/src/project_open.rs`
 - [ ] **0.2c** Confirmação ao fechar com alterações pendentes
+- [ ] **0.2d** Resync pós-abrir do beat sequencer / sampler / explorer
+      (hoje os padrões vêm no arquivo, mas a UI de beat mantém o estado anterior)
 - [ ] **0.3** Autosave periódico + recuperação
 - [ ] **0.4** Revisão do undo/redo (hoje grava `DocumentEvent` parcial)
 
@@ -155,3 +159,4 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 | 2026-11-17 | _este commit_ | docs: criação deste plano |
 | 2026-11-17 | _este commit_ | feat(project): formato `.ruana` versionado (Fase 0.1) |
 | 2026-11-17 | _este commit_ | feat(app): `Ctrl+S` / `Ctrl+Shift+S` salva `.ruana` + dirty flag (Fase 0.2a) |
+| 2026-11-17 | _este commit_ | feat(app): `Ctrl+O` abre `.ruana` com rebind do documento (Fase 0.2b) |

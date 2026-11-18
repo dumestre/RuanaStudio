@@ -88,6 +88,9 @@ pub struct EngineBridge {
     pub waveforms: Option<Rc<RefCell<crate::waveform::WaveformCache>>>,
     pub clips_model: Option<Rc<slint::VecModel<crate::ClipData>>>,
     pub track_colors_model: Option<Rc<slint::VecModel<i32>>>,
+    /// Modelos que o "Abrir projeto" precisa recarregar no lugar.
+    pub tracks_model: Option<Rc<slint::VecModel<slint::SharedString>>>,
+    pub mixer_models: Option<Rc<RefCell<crate::mixer::MixerModels>>>,
 }
 
 impl EngineBridge {
@@ -193,6 +196,8 @@ impl EngineBridge {
             waveforms: None,
             clips_model: None,
             track_colors_model: None,
+            tracks_model: None,
+            mixer_models: None,
         }
     }
 
@@ -1069,6 +1074,60 @@ impl ApplicationHandler for Handler {
                                     }
                                 }
                                 Err(msg) => eprintln!("[project] {msg}"),
+                            }
+                            return;
+                        }
+                        // Ctrl+O: abre um `.ruana`. O documento é trocado e a
+                        // UI re-projetada por `project_open::apply`; o espelho
+                        // de clips da engine se reconstrói no próximo tick.
+                        if ctrl && text.eq_ignore_ascii_case("o") {
+                            let Some(path) = crate::project_io::choose_open_path() else {
+                                return;
+                            };
+                            let opened = {
+                                let b = bridge.borrow();
+                                let models = (
+                                    b.tracks_model.clone(),
+                                    b.mixer_models.clone(),
+                                    b.waveforms.clone(),
+                                    b.clips_model.clone(),
+                                    b.track_colors_model.clone(),
+                                );
+                                match models {
+                                    (Some(tracks), Some(mixer), Some(waves), Some(clips), Some(colors)) => {
+                                        match daw_project::ProjectFile::load(&path) {
+                                            Ok(file) => crate::project_open::apply(
+                                                ui,
+                                                &file,
+                                                &b.project,
+                                                &b.transport,
+                                                &waves,
+                                                &tracks,
+                                                &colors,
+                                                &clips,
+                                                &mixer,
+                                            ),
+                                            Err(e) => Err(format!("{}", e)),
+                                        }
+                                    }
+                                    _ => Err("modelos da UI ainda não ligados".to_string()),
+                                }
+                            };
+                            match opened {
+                                Ok(()) => {
+                                    {
+                                        let mut b = bridge.borrow_mut();
+                                        b.io.set_path(path.clone());
+                                        b.io.clear_dirty();
+                                        b.clips_flag.set(true);
+                                        b.dirty = true;
+                                    }
+                                    eprintln!("[project] aberto {}", path.display());
+                                    if let Some(win) = self.window.as_ref() {
+                                        win.set_title(&bridge.borrow().io.window_title());
+                                    }
+                                }
+                                Err(msg) => eprintln!("[project] falha ao abrir: {msg}"),
                             }
                             return;
                         }

@@ -72,6 +72,17 @@ pub fn mixer_inserts_state(
     (counts, names, enabled, max_count)
 }
 
+/// Substitui o conteúdo de um `VecModel` **sem trocar o `Rc`**.
+///
+/// Abrir um projeto precisa recarregar modelos que a UI (e as janelas
+/// flutuantes) já clonaram; recriar o modelo deixaria cada lado com um
+/// buffer próprio. `set_row_count`/`set_row_data` propagam para todos.
+pub fn replace_rows<T: Clone + 'static>(model: &slint::VecModel<T>, items: &[T]) {
+    // `set_vec` troca o conteúdo e notifica `reset`, então a UI relê o modelo
+    // inteiro de uma vez (sem N eventos de linha).
+    model.set_vec(items.to_vec());
+}
+
 /// VecModel do mixer COMPARTILHADOS entre a janela principal e as
 /// flutuantes. Como todas as janelas apontam para os mesmos `Rc`,
 /// um `set_row_data` por canal propaga para todas de uma vez — sem
@@ -94,6 +105,20 @@ impl MixerModels {
             volumes: Rc::new(slint::VecModel::from(volumes)),
             pans: Rc::new(slint::VecModel::from(pans)),
         }
+    }
+
+    /// Recarrega todos os canais a partir do projeto (abrir arquivo).
+    ///
+    /// Muta os `VecModel` no lugar em vez de recriá-los: as janelas
+    /// flutuantes e os componentes Slint guardam clones dos `Rc`, então
+    /// trocar o modelo deixaria cada um apontando para um buffer diferente.
+    pub fn reset_from_project(&self, project: &Project) {
+        let (mutes, soloes, arms, volumes, pans) = mixer_state(project);
+        replace_rows(&self.mutes, &mutes);
+        replace_rows(&self.soloes, &soloes);
+        replace_rows(&self.arms, &arms);
+        replace_rows(&self.volumes, &volumes);
+        replace_rows(&self.pans, &pans);
     }
 
     /// Atualiza apenas o canal informado (propaga para todas as janelas).

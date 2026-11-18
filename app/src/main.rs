@@ -41,6 +41,7 @@ mod models;
 mod os_drop;
 mod playback;
 mod project_io;
+mod project_open;
 mod slint_host;
 mod stretch_worker;
 mod theme;
@@ -335,7 +336,7 @@ pub fn setup(
     };
     bind_document_events(
         &project.borrow(),
-        tracks_model,
+        tracks_model.clone(),
         clips_model.clone(),
         pool_clips_model,
         waveforms.clone(),
@@ -529,6 +530,8 @@ pub fn setup(
         b.waveforms = Some(waveforms.clone());
         b.clips_model = Some(clips_model.clone());
         b.track_colors_model = Some(track_colors_model.clone());
+        b.tracks_model = Some(tracks_model.clone());
+        b.mixer_models = Some(mixer_models.clone());
     }
 
     // Waveform: re-render na resolução exata quando o zoom muda.
