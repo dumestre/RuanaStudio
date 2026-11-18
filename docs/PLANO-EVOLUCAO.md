@@ -71,7 +71,9 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 - [x] **1A.2** Master fixo à direita: já estava fora do `Flickable`; agora com
       separador de 2px e recebendo `available-height` (antes herdava o default
       de 200px e desafinava o layout)
-- [ ] **1A.3** Scroll horizontal + largura de canal (narrow/wide)
+- [x] **1A.3** Scroll horizontal já vinha do `Flickable`; agora com **largura de
+      canal ajustável** (72–148px, passo 14) pelos botões `−`/`+` do
+      `MixerHeader`. O `content-width` acompanha e o scroll se recalcula
 - [ ] **1A.4** Reordenar inserts por drag
 - [ ] **1A.5** Rename inline (double-click) em canal e inserts
 - [ ] **1A.6** Cor do canal sincronizada com a track (`track-colors`)
@@ -166,3 +168,4 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 | 2026-11-17 | _este commit_ | feat(app): `Ctrl+S` / `Ctrl+Shift+S` salva `.ruana` + dirty flag (Fase 0.2a) |
 | 2026-11-17 | _este commit_ | feat(app): `Ctrl+O` abre `.ruana` com rebind do documento (Fase 0.2b) |
 | 2026-11-17 | _este commit_ | feat(mixer): seções colapsáveis + master pinado com separador (Fase 1A.1/1A.2) |
+| 2026-11-17 | _este commit_ | feat(mixer): largura de faixa ajustável no header (Fase 1A.3) |

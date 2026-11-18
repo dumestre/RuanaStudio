@@ -10,6 +10,9 @@ export component MixerHeader inherits Rectangle {
     callback undo();
     callback redo();
 
+    /// Largura das faixas, editada pelos botões de estreitar/alargar.
+    in-out property <length> channel-width: 100px;
+
     height: 30px;
     background: Theme.surface;
 
@@ -64,6 +67,32 @@ export component MixerHeader inherits Rectangle {
         }
 
         Rectangle { horizontal-stretch: 1; background: transparent; }
+
+        // Largura das faixas: 14px por clique, dentro de 72..148.
+        Button {
+            width: 20px;
+            height: 21px;
+            text: "−";
+            padding-x: 0px;
+            corner-radius: 3px;
+            resting-bg: Theme.surface-high;
+            enabled: root.channel-width > 72px;
+            clicked => {
+                root.channel-width = max(72px, root.channel-width - 14px);
+            }
+        }
+        Button {
+            width: 20px;
+            height: 21px;
+            text: "+";
+            padding-x: 0px;
+            corner-radius: 3px;
+            resting-bg: Theme.surface-high;
+            enabled: root.channel-width < 148px;
+            clicked => {
+                root.channel-width = min(148px, root.channel-width + 14px);
+            }
+        }
 
         Button {
             width: 22px;

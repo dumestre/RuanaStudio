@@ -40,6 +40,10 @@ export component Mixer inherits Rectangle {
     in-out property <bool> show-inserts: true;
     in-out property <bool> show-pan: true;
 
+    // Largura da faixa (narrow/wide). A master acompanha; o scroll
+    // horizontal do Flickable se ajusta sozinho via `content-width`.
+    in-out property <length> channel-width: 100px;
+
     // Leitura com guarda. O `MeterPump` publica o comprimento do
     // modelo, mas a reordenação de canais (mover uma faixa) acontece
     // antes do próximo tick: indexar direto nesse intervalo leria o
@@ -92,6 +96,7 @@ export component Mixer inherits Rectangle {
             paste-slots => { root.paste-inserts(root.selected-channel); }
             undo => { root.undo-requested(); }
             redo => { root.redo-requested(); }
+            channel-width <=> root.channel-width;
         }
 
         HorizontalLayout {
@@ -104,7 +109,7 @@ export component Mixer inherits Rectangle {
             flickable := Flickable {
                 horizontal-stretch: 1;
                 vertical-stretch: 1;
-                content-width: max((root.mutes.length - 1) * 100px, self.width);
+                content-width: max((root.mutes.length - 1) * root.channel-width, self.width);
                 content-height: self.height;
                 interactive: true;
 
@@ -117,6 +122,7 @@ export component Mixer inherits Rectangle {
                     for m[i] in root.mutes: MixerChannel {
                         visible: i < root.mutes.length - 1;
                         height: 100%;
+                        strip-width: root.channel-width;
                         name: root.names[i];
                         channel-color: i < root.track-colors.length && root.track-colors[i] != 0
                             ? ClipPalette.colors[Math.mod(root.track-colors[i], ClipPalette.colors.length)]
@@ -163,7 +169,7 @@ export component Mixer inherits Rectangle {
             }
 
             if root.mutes.length > 0 : MixerChannel {
-                width: 100px;
+                width: root.channel-width;
                 height: 100%;
                 name: root.names[root.mutes.length - 1];
                 channel-color: Theme.text-primary;

@@ -20,6 +20,9 @@ export component MixerChannel inherits Rectangle {
     in property <bool> selected: false;
     callback select-requested(int);
 
+    /// Largura da faixa (narrow/wide), controlada pelo `Mixer`.
+    in property <length> strip-width: 100px;
+
     in property <length> available-height: 200px;
 
     // ==========================================
@@ -99,7 +102,7 @@ export component MixerChannel inherits Rectangle {
     // CHANNEL
     // ==========================================
 
-    width: 100px;
+    width: root.strip-width;
     background: Theme.surface;
 
     // Seleciona ao clicar em áreas livres; o editor de dB, em z superior,
