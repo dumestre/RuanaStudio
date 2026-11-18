@@ -1104,6 +1104,12 @@ version = "0.1.0"
 [[package]]
 name = "daw-project"
 version = "0.1.0"
+dependencies = [
+ "daw-core",
+ "daw-midi",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "derive_arbitrary"
