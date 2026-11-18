@@ -1103,6 +1103,20 @@ self.play_start_seconds = self.transport_seconds;
                         self.handle_ruler_click(state, pos, self.ruler_px);
                     }
                 } else {
+                    let tempo_track_h = if self.show_tempo_track {
+                        self.tempo_track_height
+                    } else {
+                        0.0
+                    };
+                    let tempo_track_top = self.ruler_px - self.scroll_y;
+                    let tempo_track_bottom = tempo_track_top + tempo_track_h;
+
+                    // ===== TEMPO TRACK INTERACTION =====
+                    if self.show_tempo_track && pos.1 >= tempo_track_top && pos.1 < tempo_track_bottom {
+                        self.handle_tempo_track_click(state, pos);
+                        return;
+                    }
+
                     // InteraÃ§Ã£o com bolinhas de fade (in/out) e volume/ganho
                     if let Some((clip_idx, _kind)) = self.fade_interaction.hovered {
                         if let Some(clip) = self.clips.get(clip_idx) {
@@ -1310,6 +1324,26 @@ pub fn handle_cursor_moved(&mut self, pos: (f32, f32)) {
                 let m = self.timewarp_metrics();
                 let points = self.tw_points();
                 self.timewarp_inter.update_hover(&points, pos, &m);
+            }
+        }
+
+        // ====== Tempo Track: hover / drag de pontos de tempo ======
+        if self.show_tempo_track {
+            let tempo_track_h = self.tempo_track_height;
+            let tempo_track_top = self.ruler_px - self.scroll_y;
+            let tempo_track_bottom = tempo_track_top + tempo_track_h;
+
+            if pos.1 >= tempo_track_top && pos.1 < tempo_track_bottom {
+                if self.tempo_track_inter.is_dragging() {
+                    let m = self.tempo_track_metrics();
+                    // Segurar Alt desliga o snap (beat/BPM livre).
+                    self.tempo_track_inter.drag_move(pos, &m, !self.alt_pressed);
+                    self.request_redraw();
+                } else {
+                    let m = self.tempo_track_metrics();
+                    let points = self.tt_points();
+                    self.tempo_track_inter.update_hover(&points, pos, &m);
+                }
             }
         }
 
@@ -1799,6 +1833,95 @@ impl App {
             }
         }
         self.request_redraw();
+    }
+
+    /// Handle click/interaction on the tempo track (top track showing BPM curve).
+    pub fn handle_tempo_track_click(&mut self, state: ButtonState, pos: (f32, f32)) {
+        let m = self.tempo_track_metrics();
+        let tool = current_tool();
+
+        match state {
+            ButtonState::Pressed => {
+                match tool {
+                    Tool::Select => {
+                        let points = self.tt_points();
+                        let _ = self.tempo_track_inter.begin_drag(&points, pos, &m);
+                    }
+                    Tool::Draw => {
+                        let (beat, bpm) = m.cursor_to_beat_bpm(pos);
+                        // Snap to beat grid by default, free placement with Alt
+                        let beat = if self.alt_pressed { beat } else { beat.round() };
+                        self.tempo_map.set_change(beat, bpm);
+                        self.tt_write_back();
+                        return;
+                    }
+                    Tool::Erase => {
+                        let points = self.tt_points();
+                        if let Some(idx) = self.tempo_track_inter.hit_test(&points, pos, &m) {
+                            if let Some(p) = points.get(idx) {
+                                self.tempo_map.remove_change(p.beat);
+                                self.tt_write_back();
+                                return;
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            ButtonState::Released => {
+                match tool {
+                    Tool::Select => {
+                        if self.tempo_track_inter.is_dragging() {
+                            let mut points = self.tt_points();
+                            self.tempo_track_inter.end_drag(&mut points);
+                            self.tt_apply_points(&points);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        self.request_redraw();
+    }
+
+    /// Build metrics for tempo track interaction.
+    fn tempo_track_metrics(&self) -> super::tempo_track::TempoTrackMetrics {
+        super::tempo_track::TempoTrackMetrics {
+            px_per_beat: self.px_per_beat,
+            scroll_x: self.scroll_x,
+            track_top: self.ruler_px - self.scroll_y,
+            track_h: if self.show_tempo_track { self.tempo_track_height } else { 0.0 },
+            theme: self.theme,
+        }
+    }
+
+    /// Get tempo map points as TempoPoint for tempo track.
+    fn tt_points(&self) -> Vec<super::tempo_track::TempoPoint> {
+        self.tempo_map
+            .changes
+            .iter()
+            .map(|c| super::tempo_track::TempoPoint { beat: c.beat, bpm: c.bpm })
+            .collect()
+    }
+
+    /// Write back tempo map changes (live preview during drag).
+    fn tt_write_back(&self) {
+        if let Some(f) = &self.tempo_track_write_back {
+            f(&self.tempo_map);
+        }
+    }
+
+    /// Apply tempo track points after drag commit (records undo).
+    fn tt_apply_points(&mut self, points: &[super::tempo_track::TempoPoint]) {
+        let mut new_map = self.tempo_map.clone();
+        new_map.changes.clear();
+        for p in points {
+            new_map.set_change(p.beat, p.bpm);
+        }
+        self.tempo_map = new_map;
+        if let Some(f) = &self.tempo_track_commit {
+            f(&self.tempo_map);
+        }
     }
 
     /// Índice do clip de áudio VÁLIDO alvo do editor de warp.

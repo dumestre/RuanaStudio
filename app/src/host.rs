@@ -118,6 +118,20 @@ impl EngineBridge {
                 flag.set(true);
             });
         }
+        // Tempo Track → write-back: live preview during drag
+        {
+            let project = project.clone();
+            engine.tempo_track_write_back = Some(Box::new(move |map: &TempoMap| {
+                project.borrow_mut().tempo_map = map.clone();
+            }));
+        }
+        // Tempo Track → COMMIT (end of gesture): records undo
+        {
+            let project = project.clone();
+            engine.tempo_track_commit = Some(Box::new(move |map: &TempoMap| {
+                project.borrow_mut().set_tempo_map(map.clone());
+            }));
+        }
         // Timewarp → write-back: quando o usuário edita pontos de tempo na
         // engine (timewarp), o mapa atualizado é gravado no projeto do core
         // (fonte da verdade), preservando undo/redo do documento.

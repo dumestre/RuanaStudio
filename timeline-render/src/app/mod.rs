@@ -7,6 +7,7 @@ pub(crate) mod interaction;
 pub(crate) mod layout;
 pub(crate) mod piano_roll;
 pub(crate) mod render;
+pub(crate) mod tempo_track;
 pub(crate) mod timewarp;
 pub mod window;
 
@@ -260,6 +261,20 @@ pub struct App {
     /// Ferramenta Time Warp em andamento: beat MUSICAL sendo arrastado
     /// (a linha de compasso/batida que o usuário agarrou na régua).
     pub timewarp_drag: Option<f32>,
+
+    /// ===== Tempo Track (faixa de tempo no topo da timeline) =====
+    /// Mostra a curva de tempo (BPM) como uma track dedicada no topo da timeline.
+    /// Semelhante ao Cubase/DAWs profissionais - permite editar pontos de tempo
+    /// diretamente na arrange window sem abrir o editor de timewarp separado.
+    pub show_tempo_track: bool,
+    /// Altura fixa da tempo track (px lógicos).
+    pub tempo_track_height: f32,
+    /// Estado de interação da tempo track (hover/arrasto de pontos de tempo).
+    pub tempo_track_inter: tempo_track::TempoTrackInteraction,
+    /// Callback de write-back para tempo track (mesmo que timewarp).
+    pub tempo_track_write_back: Option<Box<dyn Fn(&daw_core::timeline::TempoMap)>>,
+    /// Callback de COMMIT para tempo track.
+    pub tempo_track_commit: Option<Box<dyn Fn(&daw_core::timeline::TempoMap)>>,
     /// Callback de write-back de CLIPS: invocado com a lista completa de clips
     /// da engine após QUALQUER edição estrutural (mover, redimensionar,
     /// desenhar, deletar, desfazer/refazer...). O host reconciliam com
@@ -926,6 +941,13 @@ transport,
             clip_write_back: None,
             clip_open_request: None,
             last_press: None,
+
+            // Tempo Track (faixa de tempo no topo da timeline).
+            show_tempo_track: true,
+            tempo_track_height: tempo_track::TEMPO_TRACK_HEIGHT,
+            tempo_track_inter: tempo_track::TempoTrackInteraction::new(),
+            tempo_track_write_back: None,
+            tempo_track_commit: None,
 
             // Edit toolbar
             icon_pipeline,

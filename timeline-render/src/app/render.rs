@@ -6,6 +6,7 @@ use std::sync::Mutex;
 
 use ab_glyph::{Font, ScaleFont};
 
+use crate::app::tempo_track;
 use crate::clips;
 use crate::fades;
 use crate::tools::{current_tool, Tool};
@@ -554,9 +555,38 @@ impl App {
         let max_track = self.clips.iter().map(|c| c.track_index as i32).max().unwrap_or(-1);
         // FICA: sempre ao menos 1 track visível (uma track padrão).
         let track_count = ((max_track + 1).max(1)) as usize;
+
+        // ===== TEMPO TRACK (faixa de tempo no topo) =====
+        // Renderiza a tempo track se habilitada. Ela fica no topo da timeline,
+        // logo abaixo da régua, com altura fixa. As tracks regulares são
+        // deslocadas para baixo pela altura da tempo track.
+        let tempo_track_h = if self.show_tempo_track {
+            self.tempo_track_height
+        } else {
+            0.0
+        };
+
+        // Renderiza a tempo track (curva de BPM, pontos, grid)
+        if self.show_tempo_track {
+            let m = tempo_track::TempoTrackMetrics {
+                px_per_beat: self.px_per_beat,
+                scroll_x: self.scroll_x,
+                track_top: self.ruler_px - self.scroll_y,
+                track_h: tempo_track_h,
+                theme: self.theme,
+            };
+            instances.extend(tempo_track::build_tempo_track_instances(
+                &self.tempo_map,
+                &self.tempo_track_inter,
+                &m,
+                width,
+            ));
+        }
+
+        // Separadores das tracks regulares (deslocados pela tempo track)
         for tr in 0..track_count {
-            let y = self.ruler_px + (tr as f32 + 1.0) * row_height - self.scroll_y;
-            if y < self.ruler_px || y > view_bottom { continue; }
+            let y = self.ruler_px + tempo_track_h + (tr as f32 + 1.0) * row_height - self.scroll_y;
+            if y < self.ruler_px + tempo_track_h || y > view_bottom { continue; }
             instances.push(RectInstance {
                 x: 0.0, y, w: width, h: 1.0,
                 color: rgba(palette::BASE[t], 150),
@@ -568,13 +598,18 @@ impl App {
         let ruler_h = self.ruler_px;
 
         // Clips (hover/drag/fantasma + overlay) — módulo clips
+        let tempo_track_h = if self.show_tempo_track {
+            self.tempo_track_height
+        } else {
+            0.0
+        };
         let cm = clips::ClipMetrics {
             px_per_beat: self.px_per_beat,
             wave_segments: self.wave_segments.clone(),
             row_height,
             scroll_x: self.scroll_x,
             scroll_y: self.scroll_y,
-            ruler_px: self.ruler_px,
+            ruler_px: self.ruler_px + tempo_track_h,
             theme: t,
             max_track: self.clips.iter().map(|c| c.track_index).max().unwrap_or(0),
         };

@@ -1143,6 +1143,12 @@ export component Workspace inherits Rectangle {
                             scroll-y:
                                 timeline.scroll-y;
 
+                            show-tempo-track:
+                                true;
+
+                            tempo-track-height:
+                                60px;
+
                             track-clicked(index) => {
                                 root.selected-track =
                                     index;

@@ -83,6 +83,10 @@ export component TimelineHeader inherits Rectangle {
 
     in property <length> scroll-y: 0px;
 
+    // Tempo track
+    in property <bool> show-tempo-track: true;
+    in property <length> tempo-track-height: 60px;
+
 
     // =====================================================
     // CALLBACKS
@@ -112,6 +116,43 @@ export component TimelineHeader inherits Rectangle {
     // =====================================================
     // HEADER FIXO NO TOPO (altura = ruler-height)
     // =====================================================
+
+    // Tempo Track Header (opcional, no topo)
+    tempo-header := Rectangle {
+        visible: root.show-tempo-track;
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: root.tempo-track-height;
+        background: Theme.base;
+
+        Text {
+            x: 8px;
+            y: 0;
+            width: 80px;
+            height: parent.height;
+            text: "TEMPO";
+            color: Theme.text-primary;
+            font-size: 9px;
+            font-weight: 700;
+            horizontal-alignment: TextHorizontalAlignment.left;
+            vertical-alignment: TextVerticalAlignment.center;
+        }
+
+        // BPM display
+        Text {
+            x: 90px;
+            y: 0;
+            width: 120px;
+            height: parent.height;
+            text: "120.0 BPM";
+            color: Theme.text-dim;
+            font-size: 10px;
+            font-weight: 600;
+            horizontal-alignment: TextHorizontalAlignment.left;
+            vertical-alignment: TextVerticalAlignment.center;
+        }
+    }
 
     header := HorizontalLayout {
 
@@ -238,7 +279,7 @@ export component TimelineHeader inherits Rectangle {
 
         x: 0;
 
-        y: root.ruler-height;
+        y: root.show-tempo-track ? root.tempo-track-height + root.ruler-height : root.ruler-height;
 
         width: parent.width;
 
@@ -258,11 +299,11 @@ export component TimelineHeader inherits Rectangle {
 
         x: 0;
 
-        y: root.ruler-height + 1px;  // abaixo do header + divisória
+        y: root.show-tempo-track ? root.tempo-track-height + root.ruler-height + 1px : root.ruler-height + 1px;  // abaixo do header + divisória
 
         width: 100%;
 
-        height: parent.height - root.ruler-height - 1px;
+        height: parent.height - (root.show-tempo-track ? root.tempo-track-height + root.ruler-height + 1px : root.ruler-height + 1px);
 
 
         VerticalLayout {

@@ -34,6 +34,10 @@ export component TrackPanel inherits Rectangle {
 
     in property <length> scroll-y: 0px;
 
+    // Tempo track
+    in property <bool> show-tempo-track: true;
+    in property <length> tempo-track-height: 60px;
+
 
     // =====================================================
     // LARGURA
@@ -139,6 +143,12 @@ export component TrackPanel inherits Rectangle {
 
         scroll-y:
             root.scroll-y;
+
+        show-tempo-track:
+            root.show-tempo-track;
+
+        tempo-track-height:
+            root.tempo-track-height;
 
 
         track-clicked(index) => {
