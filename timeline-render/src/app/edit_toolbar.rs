@@ -34,13 +34,17 @@ pub const ICON_SIZE: f32 = 16.0;
 
 /// Ordem das ferramentas na toolbar (igual ao EditToolbar do Slint) — difere
 /// da ordem do enum `Tool` (usado pelas teclas 1..=6).
-pub const TOOL_INDEX: [Tool; 6] = [
-    Tool::Select,  // 0
-    Tool::Slice,   // 1
-    Tool::Glue,    // 2
-    Tool::Stretch, // 3
-    Tool::Draw,    // 4
-    Tool::Erase,   // 5
+pub const TOOL_INDEX: [Tool; 10] = [
+    Tool::Select,       // 0
+    Tool::Slice,        // 1
+    Tool::Glue,         // 2
+    Tool::Stretch,      // 3
+    Tool::Draw,         // 4
+    Tool::Erase,        // 5
+    Tool::MarkerPosition, // 6
+    Tool::MarkerRegion,   // 7
+    Tool::MarkerLoop,     // 8
+    Tool::MarkerCdTrack,  // 9
 ];
 
 /// Ferramenta correspondente ao índice da toolbar (0..5).
@@ -67,15 +71,27 @@ pub const ICON_DRAW: u32 = 8;
 pub const ICON_DRAW_FILLED: u32 = 9;
 pub const ICON_ERASE: u32 = 10;
 pub const ICON_ERASE_FILLED: u32 = 11;
+pub const ICON_MARKER_POSITION: u32 = 12;
+pub const ICON_MARKER_POSITION_FILLED: u32 = 13;
+pub const ICON_MARKER_REGION: u32 = 14;
+pub const ICON_MARKER_REGION_FILLED: u32 = 15;
+pub const ICON_MARKER_LOOP: u32 = 16;
+pub const ICON_MARKER_LOOP_FILLED: u32 = 17;
+pub const ICON_MARKER_CD: u32 = 18;
+pub const ICON_MARKER_CD_FILLED: u32 = 19;
 
 /// Par (normal, filled) de cada botão, na ordem da toolbar.
-const BTN_ICONS: [(u32, u32); 6] = [
+const BTN_ICONS: [(u32, u32); 10] = [
     (ICON_SELECT, ICON_SELECT_FILLED),
     (ICON_SLICE, ICON_SLICE_FILLED),
     (ICON_GLUE, ICON_GLUE_FILLED),
     (ICON_STRETCH, ICON_STRETCH_FILLED),
     (ICON_DRAW, ICON_DRAW_FILLED),
     (ICON_ERASE, ICON_ERASE_FILLED),
+    (ICON_MARKER_POSITION, ICON_MARKER_POSITION_FILLED),
+    (ICON_MARKER_REGION, ICON_MARKER_REGION_FILLED),
+    (ICON_MARKER_LOOP, ICON_MARKER_LOOP_FILLED),
+    (ICON_MARKER_CD, ICON_MARKER_CD_FILLED),
 ];
 
 /// Cor de fundo do botão ativo (equivalente a `Theme.crimson`).
@@ -125,13 +141,13 @@ fn uv_for(icon: u32) -> (f32, f32, f32, f32) {
     (u, v, du, dv)
 }
 
-/// Rects dos 6 botões, centralizados na faixa `strip`.
-pub fn button_rects(strip: Rect) -> [(f32, f32, f32, f32); 6] {
-    let total_w = 6.0 * BUTTON_SIZE + 5.0 * BUTTON_GAP;
+/// Rects dos 10 botões, centralizados na faixa `strip`.
+pub fn button_rects(strip: Rect) -> [(f32, f32, f32, f32); 10] {
+    let total_w = 10.0 * BUTTON_SIZE + 9.0 * BUTTON_GAP;
     let start_x = strip.x + (strip.width - total_w) / 2.0;
     let y = strip.y + (strip.height - BUTTON_SIZE) / 2.0;
 
-    let mut out = [(0.0f32, 0.0, 0.0, 0.0); 6];
+    let mut out = [(0.0f32, 0.0, 0.0, 0.0); 10];
     for (i, r) in out.iter_mut().enumerate() {
         let x = start_x + i as f32 * (BUTTON_SIZE + BUTTON_GAP);
         *r = (x, y, BUTTON_SIZE, BUTTON_SIZE);
@@ -150,7 +166,7 @@ impl crate::App {
             return None;
         }
         let rects = button_rects(strip);
-        for (i, (bx, by, bw, bh)) in rects.iter().enumerate() {
+        for (i, (bx, by, bw, bh)) in rects.iter().enumerate().take(10) {
             if cursor.0 >= *bx
                 && cursor.0 <= bx + bw
                 && cursor.1 >= *by

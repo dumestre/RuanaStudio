@@ -442,8 +442,8 @@ export component Toolbar inherits Rectangle {
         // VOLUME GERAL (Master)
         // ========================================================
         KnobWithoutText {
-            width: 26px;
-            height: 26px;
+            width: 22px;
+            height: 22px;
             value: root.master-volume;
             changed(v) => {
                 root.master-volume = v;
@@ -489,8 +489,8 @@ export component Toolbar inherits Rectangle {
             // ----------------------------------------------------
 
             Button {
-                width: 20px;
-                height: 20px;
+                width: 19px;
+                height: 19px;
 
                 icon: root.full-screen ? @image-url("icons/restore.svg") : @image-url("icons/maximize.svg");
                 icon-color: Theme.text-primary;
@@ -512,8 +512,8 @@ export component Toolbar inherits Rectangle {
             // ----------------------------------------------------
 
             Button {
-                width: 20px;
-                height: 20px;
+                width: 19px;
+                height: 19px;
 
                 icon: @image-url("icons/close.svg");
                 icon-color: Theme.text-primary;

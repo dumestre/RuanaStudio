@@ -267,6 +267,10 @@ fn build_icons() -> Result<(), Box<dyn std::error::Error>> {
         ("expand_diag.svg", "stretch_filled.svg"),
         ("draw.svg", "draw_filled.svg"),
         ("erase.svg", "erase_filled.svg"),
+        ("draw.svg", "draw_filled.svg"),        // MarkerPosition (6)
+        ("slice.svg", "slice_filled.svg"),      // MarkerRegion (7)
+        ("loop.svg", "loop.svg"),               // MarkerLoop (8)
+        ("disk.svg", "disk.svg"),               // MarkerCdTrack (9)
     ];
 
     const CELL: u32 = 16;

@@ -31,8 +31,7 @@ export component StereoMeter inherits Rectangle {
     private property <length> divider-width: 1px;
 
     width: root.channel-width * 2 + root.channel-gap + root.divider-width;
-    background: transparent;
-    border-radius: 0px;
+ 
 
     function level-clamped(value: float) -> float {
         if value != value { return 0.0; }
@@ -48,12 +47,12 @@ export component StereoMeter inherits Rectangle {
         Rectangle {
             width: root.channel-width; height: root.meter-height;
             background: root.meter-background;
-            border-width: 0px; border-color: root.meter-border;
-            border-radius: 0px; clip: true;
+            border-color: root.meter-border;
+            clip: true;
 
             // Barra principal: envelope de pico.
             Rectangle {
-                x: 0px; y: 0px; width: parent.width; height: parent.height;
+                x: 0px; y: 0px; 
                 background: root.level-color;
                 clip: true;
                 Rectangle {
@@ -107,12 +106,12 @@ export component StereoMeter inherits Rectangle {
         Rectangle {
             width: root.channel-width; height: root.meter-height;
             background: root.meter-background;
-            border-width: 0px; border-color: root.meter-border;
-            border-radius: 0px; clip: true;
+            border-color: root.meter-border;
+            clip: true;
 
             // Barra principal: envelope de pico.
             Rectangle {
-                x: 0px; y: 0px; width: parent.width; height: parent.height;
+                x: 0px; y: 0px; 
                 background: root.level-color;
                 clip: true;
                 Rectangle {

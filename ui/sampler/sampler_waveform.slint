@@ -94,7 +94,6 @@ export component SamplerWaveform inherits Rectangle {
     if root.sample-loaded && root.waveform-image.width > 0: Image {
         source: root.waveform-image;
         image-fit: fill;
-        image-rendering: smooth;
         // A forma é opaca sobre fundo transparente, então tingir
         // basta — não precisa de outra imagem por cor.
         colorize: root.waveform-color;
@@ -133,7 +132,6 @@ export component SamplerWaveform inherits Rectangle {
         viewbox-width: 100;
         viewbox-height: 100;
         fit: fill;
-        fill: transparent;
         stroke: SamplerStyle.text-mid;
         stroke-width: 1px;
         opacity: 0.55;
@@ -147,7 +145,6 @@ export component SamplerWaveform inherits Rectangle {
         viewbox-width: 100;
         viewbox-height: 100;
         fit: fill;
-        fill: transparent;
         stroke: SamplerStyle.text-mid;
         stroke-width: 1px;
         opacity: 0.55;
@@ -300,7 +297,6 @@ export component SamplerWaveform inherits Rectangle {
             width: root.compact ? 21px : 40px;
             height: self.width;
             colorize: SamplerStyle.rail-hi;
-            horizontal-alignment: center;
         }
 
         Text {

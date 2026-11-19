@@ -34,7 +34,7 @@ use winit::window::{Window, WindowId};
 use crate::slint_host::SlintOverlay;
 use crate::MainWindow;
 use daw_core::project::Project;
-use daw_core::timeline::TempoMap;
+use daw_core::timeline::{MarkerMap, TempoMap};
 use daw_core::transport::{PlayMode, Transport};
 
 /// Estado pequeno compartilhado entre o handler e as closures da DAW.
@@ -150,6 +150,20 @@ impl EngineBridge {
             let project = project.clone();
             engine.tempo_commit = Some(Box::new(move |map: &TempoMap| {
                 project.borrow_mut().set_tempo_map(map.clone());
+            }));
+        }
+        // Markers → write-back: live preview during drag
+        {
+            let project = project.clone();
+            engine.marker_write_back = Some(Box::new(move |map: &daw_core::timeline::MarkerMap| {
+                project.borrow_mut().marker_map = map.clone();
+            }));
+        }
+        // Markers → COMMIT (end of gesture): records undo
+        {
+            let project = project.clone();
+            engine.marker_commit = Some(Box::new(move |map: &daw_core::timeline::MarkerMap| {
+                project.borrow_mut().set_marker_map(map.clone());
             }));
         }
         let mirrored_clip_ids = Rc::new(RefCell::new(Vec::<u64>::new()));

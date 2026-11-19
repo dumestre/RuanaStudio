@@ -22,6 +22,11 @@ pub enum Tool {
     Slice = 3,
     Erase = 4,
     Glue = 5,
+    // Marker tools
+    MarkerPosition = 6,
+    MarkerRegion = 7,
+    MarkerLoop = 8,
+    MarkerCdTrack = 9,
 }
 
 impl Tool {
@@ -34,6 +39,10 @@ impl Tool {
             3 => Some(Tool::Slice),
             4 => Some(Tool::Erase),
             5 => Some(Tool::Glue),
+            6 => Some(Tool::MarkerPosition),
+            7 => Some(Tool::MarkerRegion),
+            8 => Some(Tool::MarkerLoop),
+            9 => Some(Tool::MarkerCdTrack),
             _ => None,
         }
     }
@@ -46,6 +55,10 @@ impl Tool {
             Tool::Slice => "slice.cur",
             Tool::Erase => "erase.cur",
             Tool::Glue => "glue.cur",
+            Tool::MarkerPosition => "draw.cur",
+            Tool::MarkerRegion => "draw.cur",
+            Tool::MarkerLoop => "draw.cur",
+            Tool::MarkerCdTrack => "draw.cur",
         }
     }
 
@@ -57,6 +70,10 @@ impl Tool {
             Tool::Slice => "slice-dark.cur",
             Tool::Erase => "erase-dark.cur",
             Tool::Glue => "glue-dark.cur",
+            Tool::MarkerPosition => "draw-dark.cur",
+            Tool::MarkerRegion => "draw-dark.cur",
+            Tool::MarkerLoop => "draw-dark.cur",
+            Tool::MarkerCdTrack => "draw-dark.cur",
         }
     }
 
@@ -69,6 +86,10 @@ impl Tool {
             Tool::Slice => "Slice",
             Tool::Erase => "Erase",
             Tool::Glue => "Glue",
+            Tool::MarkerPosition => "Marker Position",
+            Tool::MarkerRegion => "Marker Region",
+            Tool::MarkerLoop => "Marker Loop",
+            Tool::MarkerCdTrack => "Marker CD Track",
         }
     }
 }
@@ -103,6 +124,10 @@ impl ToolManager {
             Tool::Slice,
             Tool::Erase,
             Tool::Glue,
+            Tool::MarkerPosition,
+            Tool::MarkerRegion,
+            Tool::MarkerLoop,
+            Tool::MarkerCdTrack,
         ];
 
         let mut cursors = HashMap::new();

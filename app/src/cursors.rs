@@ -29,6 +29,10 @@ pub enum ToolCursor {
     Stretch = 3,
     Draw = 4,
     Erase = 5,
+    MarkerPosition = 6,
+    MarkerRegion = 7,
+    MarkerLoop = 8,
+    MarkerCdTrack = 9,
 }
 
 impl ToolCursor {
@@ -40,6 +44,10 @@ impl ToolCursor {
             3 => Some(ToolCursor::Stretch),
             4 => Some(ToolCursor::Draw),
             5 => Some(ToolCursor::Erase),
+            6 => Some(ToolCursor::MarkerPosition),
+            7 => Some(ToolCursor::MarkerRegion),
+            8 => Some(ToolCursor::MarkerLoop),
+            9 => Some(ToolCursor::MarkerCdTrack),
             _ => None,
         }
     }
@@ -53,6 +61,10 @@ impl ToolCursor {
             ToolCursor::Stretch => "stretch.cur",
             ToolCursor::Draw => "draw.cur",
             ToolCursor::Erase => "erase.cur",
+            ToolCursor::MarkerPosition => "draw.cur",
+            ToolCursor::MarkerRegion => "draw.cur",
+            ToolCursor::MarkerLoop => "draw.cur",
+            ToolCursor::MarkerCdTrack => "draw.cur",
         }
     }
 
@@ -66,6 +78,10 @@ impl ToolCursor {
             ToolCursor::Stretch => "stretch-dark.cur",
             ToolCursor::Draw => "draw-dark.cur",
             ToolCursor::Erase => "erase-dark.cur",
+            ToolCursor::MarkerPosition => "draw-dark.cur",
+            ToolCursor::MarkerRegion => "draw-dark.cur",
+            ToolCursor::MarkerLoop => "draw-dark.cur",
+            ToolCursor::MarkerCdTrack => "draw-dark.cur",
         }
     }
 }

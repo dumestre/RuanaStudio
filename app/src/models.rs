@@ -296,6 +296,15 @@ pub fn apply_change(
             // Tempo-warp não altera metadados de clips — apenas o mapa
             // de tempo. A UI re-renderiza a régua/playhead separadamente.
         }
+        DocumentEvent::MarkerAdded(_) |
+        DocumentEvent::MarkerMoved { .. } |
+        DocumentEvent::MarkerRemoved(_) |
+        DocumentEvent::MarkerRenamed { .. } |
+        DocumentEvent::MarkerRegionResized { .. } |
+        DocumentEvent::MarkersReplaced { .. } => {
+            // Marcadores são renderizados pela timeline wgpu (não pelo Slint).
+            // A timeline engine observa marker_write_back/marker_commit.
+        }
         DocumentEvent::MixerInsertsChanged { .. } => {
             // O modelo visual dos inserts é reprojetado pelo estado do mixer.
         }

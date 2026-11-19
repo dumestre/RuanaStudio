@@ -256,6 +256,138 @@ export component EditToolbar inherits Rectangle {
                     root.tool-changed(5);
                 }
             }
+
+            // =================================================
+            // MARKER POSITION - 6
+            // =================================================
+
+            Button {
+                width: 18px;
+                height: 18px;
+
+                resting-bg: Theme.surface-high;
+
+                icon: @image-url("icons/draw.svg");
+                filled-icon: @image-url("icons/draw_filled.svg");
+
+                icon-color: Theme.text-primary;
+                borderless: true;
+                corner-radius: 2px;
+                drop-shadow-blur: 3px;
+                drop-shadow-color: Theme.shadow;
+                drop-shadow-offset-y: 3px;
+                drop-shadow-offset-x: 1.5px;
+
+                toggled: root.active-tool == 6;
+
+                toggled-fg: Theme.on-crimson;
+                toggled-bg: Theme.crimson;
+                toggled-icon-color: Theme.on-crimson;
+
+                clicked => {
+                    root.active-tool = 6;
+                    root.tool-changed(6);
+                }
+            }
+
+            // =================================================
+            // MARKER REGION - 7
+            // =================================================
+
+            Button {
+                width: 18px;
+                height: 18px;
+
+                resting-bg: Theme.surface-high;
+
+                icon: @image-url("icons/slice.svg");
+                filled-icon: @image-url("icons/slice_filled.svg");
+
+                icon-color: Theme.text-primary;
+                borderless: true;
+                corner-radius: 2px;
+                drop-shadow-blur: 3px;
+                drop-shadow-color: Theme.shadow;
+                drop-shadow-offset-y: 3px;
+                drop-shadow-offset-x: 1.5px;
+
+                toggled: root.active-tool == 7;
+
+                toggled-fg: Theme.on-crimson;
+                toggled-bg: Theme.crimson;
+                toggled-icon-color: Theme.on-crimson;
+
+                clicked => {
+                    root.active-tool = 7;
+                    root.tool-changed(7);
+                }
+            }
+
+            // =================================================
+            // MARKER LOOP - 8
+            // =================================================
+
+            Button {
+                width: 18px;
+                height: 18px;
+
+                resting-bg: Theme.surface-high;
+
+                icon: @image-url("icons/loop.svg");
+                filled-icon: @image-url("icons/loop.svg");
+
+                icon-color: Theme.text-primary;
+                borderless: true;
+                corner-radius: 2px;
+                drop-shadow-blur: 3px;
+                drop-shadow-color: Theme.shadow;
+                drop-shadow-offset-y: 3px;
+                drop-shadow-offset-x: 1.5px;
+
+                toggled: root.active-tool == 8;
+
+                toggled-fg: Theme.on-crimson;
+                toggled-bg: Theme.crimson;
+                toggled-icon-color: Theme.on-crimson;
+
+                clicked => {
+                    root.active-tool = 8;
+                    root.tool-changed(8);
+                }
+            }
+
+            // =================================================
+            // MARKER CD TRACK - 9
+            // =================================================
+
+            Button {
+                width: 18px;
+                height: 18px;
+
+                resting-bg: Theme.surface-high;
+
+                icon: @image-url("icons/disk.svg");
+                filled-icon: @image-url("icons/disk.svg");
+
+                icon-color: Theme.text-primary;
+                borderless: true;
+                corner-radius: 2px;
+                drop-shadow-blur: 3px;
+                drop-shadow-color: Theme.shadow;
+                drop-shadow-offset-y: 3px;
+                drop-shadow-offset-x: 1.5px;
+
+                toggled: root.active-tool == 9;
+
+                toggled-fg: Theme.on-crimson;
+                toggled-bg: Theme.crimson;
+                toggled-icon-color: Theme.on-crimson;
+
+                clicked => {
+                    root.active-tool = 9;
+                    root.tool-changed(9);
+                }
+            }
         }
     }
 }

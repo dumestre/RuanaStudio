@@ -139,8 +139,6 @@ export component Fader inherits Rectangle {
         // INTERAÇÃO DO MOUSE (Mapeamento vertical 0.0 na base e 1.0 no topo)
         // Só arrasta a partir do limiar; na soltura interrompe o arrasto.
         touch := TouchArea {
-            width: parent.width;
-            height: parent.height;
             mouse-cursor: pointer;
 
             moved => {
@@ -180,9 +178,8 @@ export component Fader inherits Rectangle {
             y: (parent.height * (1.0 - root.value)) - (self.height / 2);
 
             source: @image-url("../icons/fader.png");
-            horizontal-tiling: ImageTiling.none;
             image-fit: ImageFit.contain;
-            image-rendering: ImageRendering.smooth;
+
         }
     }
 

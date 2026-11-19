@@ -20,7 +20,6 @@ export component MixerHeader inherits Rectangle {
         padding-left: 8px;
         padding-right: 6px;
         spacing: 5px;
-        alignment: LayoutAlignment.stretch;
         cross-axis-alignment: CrossAxisAlignment.center;
         height: 100%;
 
@@ -66,7 +65,7 @@ export component MixerHeader inherits Rectangle {
             clicked => { root.redo(); }
         }
 
-        Rectangle { horizontal-stretch: 1; background: transparent; }
+        Rectangle { horizontal-stretch: 1; }
 
         // Largura das faixas: 14px por clique, dentro de 72..148.
         Button {

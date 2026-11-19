@@ -51,7 +51,6 @@ export component SamplerPitch inherits Rectangle {
             SamplerKnob {
                 label: "TUNE";
                 value: root.tune;
-                default-value: 0.5;
                 bipolar: true;
                 compact: root.compact;
                 accent: SamplerStyle.sec-pitch;
@@ -66,7 +65,7 @@ export component SamplerPitch inherits Rectangle {
             SamplerKnob {
                 label: "FINE";
                 value: root.fine;
-                default-value: 0.5;
+
                 bipolar: true;
                 compact: root.compact;
                 accent: SamplerStyle.sec-pitch;
@@ -81,7 +80,6 @@ export component SamplerPitch inherits Rectangle {
             SamplerKnob {
                 label: "OCTAVE";
                 value: root.octave;
-                default-value: 0.5;
                 bipolar: true;
                 compact: root.compact;
                 accent: SamplerStyle.sec-pitch;

@@ -89,7 +89,6 @@ export component PianoNoteProperties inherits Rectangle {
             color: Theme.text-dim;
             font-size: 9px; font-weight: 500;
             horizontal-alignment: center;
-            vertical-alignment: top;
             wrap: word-wrap;
         }
     }
@@ -174,7 +173,7 @@ export component PianoNoteProperties inherits Rectangle {
             VerticalLayout {
                 x: 104px; y: 0;
                 width: parent.width - 118px; height: parent.height;
-                spacing: 0;
+
 
                 Text {
                     height: 18px;
@@ -192,7 +191,6 @@ export component PianoNoteProperties inherits Rectangle {
                         + (PianoRollData.last-note - PianoRollData.first-note + 1).to-fixed(0);
                     color: Theme.text-primary;
                     font-size: 9px; font-weight: 600;
-                    vertical-alignment: top;
                 }
             }
         }
@@ -293,7 +291,6 @@ export component PianoNoteProperties inherits Rectangle {
 
                 TouchArea {
                     x: 0; y: 0;
-                    width: parent.width; height: parent.height;
                     mouse-cursor: ew-resize;
 
                     pointer-event(event) => {
@@ -342,7 +339,7 @@ export component PianoNoteProperties inherits Rectangle {
             alignment: LayoutAlignment.end;
 
             Button {
-                height: 26px; horizontal-stretch: 1;
+                horizontal-stretch: 1;
                 text: "Excluir";
 
                 clicked => {

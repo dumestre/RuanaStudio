@@ -5,6 +5,7 @@ pub(crate) mod audio;
 pub(crate) mod edit_toolbar;
 pub(crate) mod interaction;
 pub(crate) mod layout;
+pub(crate) mod markers;
 pub(crate) mod piano_roll;
 pub(crate) mod render;
 pub(crate) mod tempo_track;
@@ -275,6 +276,18 @@ pub struct App {
     pub tempo_track_write_back: Option<Box<dyn Fn(&daw_core::timeline::TempoMap)>>,
     /// Callback de COMMIT para tempo track.
     pub tempo_track_commit: Option<Box<dyn Fn(&daw_core::timeline::TempoMap)>>,
+    /// Marcadores na régua (posição, regiões, loops, CD tracks)
+    pub marker_map: daw_core::timeline::MarkerMap,
+    /// Estado de interação com marcadores
+    pub marker_inter: markers::MarkerInteraction,
+    /// Marcador sob hover (para highlight)
+    pub marker_hovered_id: Option<u64>,
+    /// Marcador selecionado
+    pub marker_selected_id: Option<u64>,
+    /// Callback de write-back de marcadores
+    pub marker_write_back: Option<Box<dyn FnMut(&daw_core::timeline::MarkerMap)>>,
+    /// Callback de COMMIT de marcadores
+    pub marker_commit: Option<Box<dyn FnMut(&daw_core::timeline::MarkerMap)>>,
     /// Callback de write-back de CLIPS: invocado com a lista completa de clips
     /// da engine após QUALQUER edição estrutural (mover, redimensionar,
     /// desenhar, deletar, desfazer/refazer...). O host reconciliam com
@@ -948,6 +961,14 @@ transport,
             tempo_track_inter: tempo_track::TempoTrackInteraction::new(),
             tempo_track_write_back: None,
             tempo_track_commit: None,
+
+            // Markers (marcadores na régua)
+            marker_map: daw_core::timeline::MarkerMap::new(),
+            marker_inter: markers::MarkerInteraction::new(),
+            marker_hovered_id: None,
+            marker_selected_id: None,
+            marker_write_back: None,
+            marker_commit: None,
 
             // Edit toolbar
             icon_pipeline,

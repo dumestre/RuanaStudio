@@ -59,8 +59,6 @@ export component FloatPanel inherits Window {
     background: Theme.base;
 
     VerticalLayout {
-        spacing: 0;
-        alignment: LayoutAlignment.stretch;
         cross-axis-alignment: CrossAxisAlignment.stretch;
 
         // Header
@@ -75,7 +73,6 @@ export component FloatPanel inherits Window {
                 padding-left: 10px;
                 padding-right: 6px;
                 spacing: 6px;
-                alignment: LayoutAlignment.stretch;
                 cross-axis-alignment: CrossAxisAlignment.center;
                 height: 100%;
 
@@ -87,7 +84,7 @@ export component FloatPanel inherits Window {
                     vertical-alignment: center;
                 }
 
-                Rectangle { horizontal-stretch: 1; background: transparent; }
+                Rectangle { horizontal-stretch: 1; }
 
                 Button {
                     width: 22px;
@@ -168,7 +165,6 @@ export component FloatPanel inherits Window {
         y: root.height - resize-corner;
         width: resize-corner;
         height: resize-corner;
-        background: transparent;
 
         TouchArea {
             mouse-cursor: root.tool-tab == 0 ? MouseCursor.ns-resize : MouseCursor.nwse-resize;

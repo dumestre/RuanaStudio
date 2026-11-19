@@ -107,15 +107,13 @@ export component SamplerVelocity inherits Rectangle {
         Path {
             x: 0;
             y: 0;
-            width: parent.width;
-            height: parent.height;
             commands: SamplerCurves.velocity-curve(
                 root.curve == "SOFT" ? "LOG" : root.curve == "HARD" ? "EXP" : "LINEAR",
                 false
             );
             stroke: Theme.accent;
-            stroke-width: 18;
-            fill: transparent;
+            stroke-width: 1px;
+  
             viewbox-width: 1000;
             viewbox-height: 1000;
         }
@@ -215,8 +213,7 @@ export component SamplerVelocity inherits Rectangle {
         display-value:
             Math.round(root.volume-amount * 100) + "%";
 
-        show-display: true;
-        show-text: true;
+
 
         changed(value) => {
             root.volume-amount = value;
@@ -242,8 +239,7 @@ export component SamplerVelocity inherits Rectangle {
         display-value:
             Math.round(root.filter-amount * 100) + "%";
 
-        show-display: true;
-        show-text: true;
+
 
         centered: true;
 
@@ -271,8 +267,6 @@ export component SamplerVelocity inherits Rectangle {
         display-value:
             Math.round((root.pitch-amount - 0.5) * 24) + " st";
 
-        show-display: true;
-        show-text: true;
 
         centered: true;
 

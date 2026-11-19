@@ -169,8 +169,7 @@ export component TimelineHeader inherits Rectangle {
 
         padding-right: 8px;
 
-        alignment: LayoutAlignment.stretch;
-
+       
         cross-axis-alignment: CrossAxisAlignment.center;
 
 
@@ -184,9 +183,7 @@ export component TimelineHeader inherits Rectangle {
 
             height: parent.height;
 
-            background: transparent;
-
-
+       
             Text {
 
                 width: parent.width;
@@ -224,7 +221,6 @@ export component TimelineHeader inherits Rectangle {
 
             icon: @image-url("../icons/palette.svg");
 
-            icon-size: 16px;
 
             icon-color: Theme.text-primary;
 
@@ -254,9 +250,6 @@ export component TimelineHeader inherits Rectangle {
 
             icon: @image-url("../icons/add.svg");
 
-            icon-size: 16px;
-
-            icon-color: Theme.text-primary;
 
             resting-bg: transparent;
 
@@ -316,7 +309,7 @@ export component TimelineHeader inherits Rectangle {
 
             height: root.track-names.length * 64px * root.zoom-y;
 
-            spacing: 0px;
+        
 
             alignment: LayoutAlignment.start;
 
@@ -354,7 +347,7 @@ export component TimelineHeader inherits Rectangle {
                     // TIPO
                     // -------------------------------------
 
-                    track-type: "MIDI";
+                    track-type: i == 2 ? "audio" : "midi";
 
 
                     // -------------------------------------

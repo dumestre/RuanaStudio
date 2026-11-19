@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use ab_glyph::{Font, ScaleFont};
 
 use crate::app::tempo_track;
+use crate::app::markers;
 use crate::clips;
 use crate::fades;
 use crate::tools::{current_tool, Tool};
@@ -86,6 +87,12 @@ pub mod palette {
         (0xB0, 0xB0, 0xB0),
     ];
     pub const PLAYHEAD_COLOR: Rgb = (0xDC, 0x14, 0x3C);
+
+    /// Cores para marcadores (baseadas na paleta de clips)
+    pub fn marker_color(index: u8, theme: usize) -> Rgb {
+        let idx = (index as usize) % CLIP_PALETTE.len();
+        CLIP_PALETTE[idx]
+    }
 }
 
 pub fn rgba((r, g, b): palette::Rgb, a: u8) -> [u8; 4] { [r, g, b, a] }
@@ -846,6 +853,24 @@ impl App {
             color: [palette::BASE[t].0, palette::BASE[t].1, palette::BASE[t].2, 255],
             wave_offset: 0, wave_count: 0, clip_w: 0.0, clip_h: 0.0, radius: 0.0,
         });
+
+        // ===== MARKERS (marcadores na régua) =====
+        // Renderiza marcadores de posição, regiões, loops e CD tracks
+        let marker_metrics = markers::MarkerMetrics {
+            px_per_beat: self.px_per_beat,
+            scroll_x: self.scroll_x,
+            ruler_top: 0.0,
+            ruler_height: self.ruler_px,
+            theme: self.theme,
+        };
+        instances.extend(markers::build_all_marker_instances(
+            &self.marker_map.markers,
+            &marker_metrics,
+            width,
+            timeline_bottom,
+            self.marker_hovered_id,
+            self.marker_selected_id,
+        ));
 
         // Indicador de follow playhead (canto superior direito)
         if self.follow_playhead {

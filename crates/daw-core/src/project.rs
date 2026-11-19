@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use crate::clip::{normalize_warp_markers, Clip, ClipKind, TimeMode, WarpMarker};
 use crate::history::History;
 use crate::mixer::{InsertSlot, MixerChannel, MixerParam};
-use crate::timeline::TempoMap;
+use crate::timeline::{Marker, MarkerMap, MarkerType, TempoMap};
 use crate::track::{Track, TrackKind};
 use daw_midi::{BeatPatterns, DrumPattern, DrumTrackParams};
 
@@ -113,6 +113,30 @@ pub enum DocumentEvent {
         old: TempoMap,
         new: TempoMap,
     },
+    /// Marcador adicionado
+    MarkerAdded(Marker),
+    /// Marcador movido
+    MarkerMoved {
+        old: Marker,
+        new: Marker,
+    },
+    /// Marcador removido
+    MarkerRemoved(Marker),
+    /// Marcador renomeado
+    MarkerRenamed {
+        old: Marker,
+        new: Marker,
+    },
+    /// Marcador de região/loop redimensionado (mudança no end_beat)
+    MarkerRegionResized {
+        old: Marker,
+        new: Marker,
+    },
+    /// Mapa de marcadores substituído inteiro (write-back/commit do wgpu)
+    MarkersReplaced {
+        old: MarkerMap,
+        new: MarkerMap,
+    },
     /// Cadeia de inserts de um canal do mixer.
     MixerInsertsChanged {
         channel: usize,
@@ -127,6 +151,8 @@ pub struct Project {
     pub clips: Vec<Clip>,
     /// Mapa de tempo (tempo-warp: BPM varia ao longo da timeline).
     pub tempo_map: TempoMap,
+    /// Mapa de marcadores (posição, regiões, loops, CD tracks)
+    pub marker_map: MarkerMap,
     /// Canal master do mixer.
     pub master_mixer: MixerChannel,
     /// Padrões de bateria / step sequencer.
@@ -141,6 +167,7 @@ impl Default for Project {
             tracks: Vec::new(),
             clips: Vec::new(),
             tempo_map: TempoMap::from_bpm(120.0),
+            marker_map: MarkerMap::new(),
             master_mixer: MixerChannel::default(),
             beat_patterns: BeatPatterns::new(),
             history: History::default(),
@@ -344,6 +371,34 @@ impl Project {
             DocumentEvent::TempoChanged { new, .. } => {
                 self.tempo_map = (*new).clone();
             }
+            DocumentEvent::MarkerAdded(marker) => {
+                self.marker_map.markers.push(marker.clone());
+                self.marker_map.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+            }
+            DocumentEvent::MarkerMoved { new, .. } => {
+                if let Some(idx) = self.marker_map.markers.iter().position(|m| m.id == new.id) {
+                    self.marker_map.markers[idx] = new.clone();
+                }
+                self.marker_map.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+            }
+            DocumentEvent::MarkerRemoved(marker) => {
+                self.marker_map.markers.retain(|m| m.id != marker.id);
+            }
+            DocumentEvent::MarkerRenamed { new, .. } => {
+                if let Some(idx) = self.marker_map.markers.iter().position(|m| m.id == new.id) {
+                    self.marker_map.markers[idx] = new.clone();
+                }
+            }
+            DocumentEvent::MarkerRegionResized { new, .. } => {
+                // Atualiza o marcador de fim
+                if let Some(idx) = self.marker_map.markers.iter().position(|m| m.id == new.id && m.is_region_end()) {
+                    self.marker_map.markers[idx].beat = new.end_beat_or_self();
+                }
+                self.marker_map.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+            }
+            DocumentEvent::MarkersReplaced { new, .. } => {
+                self.marker_map = (*new).clone();
+            }
             DocumentEvent::MixerInsertsChanged { channel, new, .. } => {
                 if let Some(mixer) = self.mixer_channel_mut(*channel) {
                     mixer.inserts = new.clone();
@@ -435,6 +490,34 @@ impl Project {
             }
             DocumentEvent::TempoChanged { old, .. } => {
                 self.tempo_map = (*old).clone();
+            }
+            DocumentEvent::MarkerAdded(marker) => {
+                self.marker_map.markers.retain(|m| m.id != marker.id);
+            }
+            DocumentEvent::MarkerMoved { old, .. } => {
+                if let Some(idx) = self.marker_map.markers.iter().position(|m| m.id == old.id) {
+                    self.marker_map.markers[idx] = old.clone();
+                }
+                self.marker_map.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+            }
+            DocumentEvent::MarkerRemoved(marker) => {
+                self.marker_map.markers.push(marker.clone());
+                self.marker_map.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+            }
+            DocumentEvent::MarkerRenamed { old, .. } => {
+                if let Some(idx) = self.marker_map.markers.iter().position(|m| m.id == old.id) {
+                    self.marker_map.markers[idx] = old.clone();
+                }
+            }
+            DocumentEvent::MarkerRegionResized { old, .. } => {
+                // Restaura o marcador de fim
+                if let Some(idx) = self.marker_map.markers.iter().position(|m| m.id == old.id && m.is_region_end()) {
+                    self.marker_map.markers[idx].beat = old.end_beat_or_self();
+                }
+                self.marker_map.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+            }
+            DocumentEvent::MarkersReplaced { old, .. } => {
+                self.marker_map = (*old).clone();
             }
             DocumentEvent::MixerInsertsChanged { channel, old, .. } => {
                 if let Some(mixer) = self.mixer_channel_mut(*channel) {
@@ -1175,6 +1258,221 @@ impl Project {
 
         let new = self.tempo_map.clone();
         let event = DocumentEvent::TempoChanged { old, new };
+        self.emit(&event, ChangeKind::Apply);
+        self.history.record(event);
+        true
+    }
+
+    // =====================================================
+    // MARKERS / REGIONS
+    // =====================================================
+
+    /// Adiciona um marcador de posição simples.
+    pub fn add_position_marker(&mut self, beat: f32, name: impl Into<String>) -> u64 {
+        let id = self.marker_map.add_position(beat, name);
+        let marker = self.marker_map.markers.iter().find(|m| m.id == id).unwrap().clone();
+        let event = DocumentEvent::MarkerAdded(marker);
+        self.emit(&event, ChangeKind::Apply);
+        self.history.record(event);
+        id
+    }
+
+    /// Adiciona uma região (início + fim).
+    pub fn add_region(&mut self, start_beat: f32, end_beat: f32, name: impl Into<String>) -> u64 {
+        let id = self.marker_map.add_region(start_beat, end_beat, name);
+        // Emite eventos para ambos marcadores (início e fim)
+        let markers: Vec<Marker> = self.marker_map.markers.iter()
+            .filter(|m| m.id == id)
+            .cloned()
+            .collect();
+        for marker in markers {
+            let event = DocumentEvent::MarkerAdded(marker);
+            self.emit(&event, ChangeKind::Apply);
+            self.history.record(event);
+        }
+        id
+    }
+
+    /// Adiciona um loop (usado para repetição de seção).
+    pub fn add_loop(&mut self, start_beat: f32, end_beat: f32, name: impl Into<String>) -> u64 {
+        let id = self.marker_map.add_loop(start_beat, end_beat, name);
+        let markers: Vec<Marker> = self.marker_map.markers.iter()
+            .filter(|m| m.id == id)
+            .cloned()
+            .collect();
+        for marker in markers {
+            let event = DocumentEvent::MarkerAdded(marker);
+            self.emit(&event, ChangeKind::Apply);
+            self.history.record(event);
+        }
+        id
+    }
+
+    /// Adiciona um marcador de faixa CD.
+    pub fn add_cd_track(&mut self, beat: f32, track_num: u32, name: impl Into<String>) -> u64 {
+        let id = self.marker_map.add_cd_track(beat, track_num, name);
+        let marker = self.marker_map.markers.iter().find(|m| m.id == id).unwrap().clone();
+        let event = DocumentEvent::MarkerAdded(marker);
+        self.emit(&event, ChangeKind::Apply);
+        self.history.record(event);
+        id
+    }
+
+    /// Move um marcador (e seu par se for região/loop).
+    pub fn move_marker(&mut self, id: u64, new_beat: f32) -> bool {
+        let markers_before: Vec<Marker> = self.marker_map.markers.iter()
+            .filter(|m| m.id == id)
+            .cloned()
+            .collect();
+        
+        if markers_before.is_empty() {
+            return false;
+        }
+
+        if !self.marker_map.move_marker(id, new_beat) {
+            return false;
+        }
+
+        let markers_after: Vec<Marker> = self.marker_map.markers.iter()
+            .filter(|m| m.id == id)
+            .cloned()
+            .collect();
+
+        for (old, new) in markers_before.iter().zip(markers_after.iter()) {
+            let event = DocumentEvent::MarkerMoved { old: old.clone(), new: new.clone() };
+            self.emit(&event, ChangeKind::Apply);
+            self.history.record(event);
+        }
+        true
+    }
+
+    /// Remove um marcador (e seu par se for região/loop).
+    pub fn remove_marker(&mut self, id: u64) -> bool {
+        let markers_before: Vec<Marker> = self.marker_map.markers.iter()
+            .filter(|m| m.id == id)
+            .cloned()
+            .collect();
+
+        if markers_before.is_empty() {
+            return false;
+        }
+
+        if !self.marker_map.remove(id) {
+            return false;
+        }
+
+        for marker in markers_before {
+            let event = DocumentEvent::MarkerRemoved(marker);
+            self.emit(&event, ChangeKind::Apply);
+            self.history.record(event);
+        }
+        true
+    }
+
+    /// Renomeia um marcador.
+    pub fn rename_marker(&mut self, id: u64, new_name: impl Into<String>) -> bool {
+        let Some(index) = self.marker_map.markers.iter().position(|m| m.id == id && m.marker_type != MarkerType::RegionEnd && m.marker_type != MarkerType::LoopEnd) else {
+            return false;
+        };
+        let old = self.marker_map.markers[index].clone();
+        let new_name = new_name.into();
+        if old.name == new_name {
+            return false;
+        }
+        self.marker_map.markers[index].name = new_name.clone();
+        let new = self.marker_map.markers[index].clone();
+
+        let event = DocumentEvent::MarkerRenamed { old, new };
+        self.emit(&event, ChangeKind::Apply);
+        self.history.record(event);
+        true
+    }
+
+    /// Redimensiona uma região/loop (atualiza o end_beat).
+    pub fn resize_marker_region(&mut self, id: u64, new_end_beat: f32) -> bool {
+        let indices: Vec<usize> = self.marker_map.markers.iter().enumerate()
+            .filter(|(_, m)| m.id == id && m.is_region_start())
+            .map(|(i, _)| i)
+            .collect();
+
+        if indices.is_empty() {
+            return false;
+        }
+
+        let old_start = self.marker_map.markers[indices[0]].clone();
+
+        if !self.marker_map.set_end_beat(id, new_end_beat) {
+            return false;
+        }
+
+        // Encontra o marcador de fim atualizado
+        let Some(end_idx) = self.marker_map.markers.iter().position(|m| m.id == id && m.is_region_end()) else {
+            return false;
+        };
+        let _new_end = self.marker_map.markers[end_idx].clone();
+
+        // Emite evento para o marcador de início (que representa a região)
+        let new_start = Marker {
+            end_beat: Some(new_end_beat),
+            ..old_start.clone()
+        };
+        let event = DocumentEvent::MarkerRegionResized { old: old_start, new: new_start };
+        self.emit(&event, ChangeKind::Apply);
+        self.history.record(event);
+        true
+    }
+
+    /// Define a cor de um marcador.
+    pub fn set_marker_color(&mut self, id: u64, color: u8) -> bool {
+        let indices: Vec<usize> = self.marker_map.markers.iter().enumerate()
+            .filter(|(_, m)| m.id == id)
+            .map(|(i, _)| i)
+            .collect();
+
+        if indices.is_empty() {
+            return false;
+        }
+
+        for idx in indices {
+            self.marker_map.markers[idx].color = color;
+        }
+
+        // Emite evento de rename (reutiliza para mudança visual)
+        let markers: Vec<Marker> = self.marker_map.markers.iter()
+            .filter(|m| m.id == id)
+            .cloned()
+            .collect();
+        for marker in markers {
+            let event = DocumentEvent::MarkerRenamed { old: marker.clone(), new: marker };
+            self.emit(&event, ChangeKind::Apply);
+            self.history.record(event);
+        }
+        true
+    }
+
+    /// Limpa todos os marcadores.
+    pub fn clear_markers(&mut self) {
+        let markers_before: Vec<Marker> = self.marker_map.markers.clone();
+        self.marker_map.clear();
+        for marker in markers_before {
+            let event = DocumentEvent::MarkerRemoved(marker);
+            self.emit(&event, ChangeKind::Apply);
+            self.history.record(event);
+        }
+    }
+
+    /// Substitui o mapa de marcadores inteiro (usado para write-back/commit do wgpu).
+    /// Retorna `false` se o mapa é igual (nada a gravar).
+    pub fn set_marker_map(&mut self, map: MarkerMap) -> bool {
+        if self.marker_map == map {
+            return false;
+        }
+
+        let old = self.marker_map.clone();
+        self.marker_map = map;
+
+        let new = self.marker_map.clone();
+        let event = DocumentEvent::MarkersReplaced { old, new };
         self.emit(&event, ChangeKind::Apply);
         self.history.record(event);
         true

@@ -125,8 +125,6 @@ Rectangle {
     x: 0;
     y: 0;
 
-    width: parent.width;
-    height: parent.height;
 
     background:
         root.selected
@@ -187,8 +185,7 @@ selection-area := TouchArea {
     x: 0;
     y: 0;
 
-    width: parent.width;
-    height: parent.height;
+
 
     mouse-cursor: pointer;
 
@@ -341,7 +338,6 @@ HorizontalLayout {
 
     HorizontalLayout {
         spacing: 2px;
-        alignment: LayoutAlignment.stretch;
         cross-axis-alignment: CrossAxisAlignment.center;
 
         // ------------------------------------------------
@@ -365,7 +361,7 @@ HorizontalLayout {
             toggled-bg: Theme.warn;
             toggled-fg: Theme.on-accent;
             toggled-icon-color: Theme.on-accent;
-            subtle-toggled: false;
+
 
             borderless: true;
             corner-radius: 2px;
@@ -400,7 +396,7 @@ HorizontalLayout {
             toggled-bg: root.track-color;
             toggled-fg: Theme.on-accent;
             toggled-icon-color: Theme.on-accent;
-            subtle-toggled: false;
+
 
             borderless: true;
             corner-radius: 2px;
@@ -435,7 +431,7 @@ HorizontalLayout {
             toggled-bg: Colors.darkorange;
             toggled-fg: Theme.on-accent;
             toggled-icon-color: Theme.on-accent;
-            subtle-toggled: false;
+  
 
             borderless: true;
             corner-radius: 2px;

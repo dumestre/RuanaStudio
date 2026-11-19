@@ -215,7 +215,6 @@ export component SamplerCurve inherits Rectangle {
         viewbox-width: root.vb-w;
         viewbox-height: root.vb-h;
         fit: fill;
-        fill: transparent;
         stroke: root.dim ? SamplerStyle.rail-hi : root.stroke;
         stroke-width: root.line-width;
         stroke-line-cap: round;
@@ -282,7 +281,6 @@ export component SamplerKnob inherits Rectangle {
                     commands: SamplerCurves.knob-track();
                     viewbox-width: SamplerCurves.knob-vb;
                     viewbox-height: SamplerCurves.knob-vb;
-                    fill: transparent;
                     stroke: SamplerStyle.rail;
                     stroke-width: root.compact ? 2.5px : 3px;
                     stroke-line-cap: round;
@@ -294,7 +292,6 @@ export component SamplerKnob inherits Rectangle {
                         : SamplerCurves.knob-value(root.value);
                     viewbox-width: SamplerCurves.knob-vb;
                     viewbox-height: SamplerCurves.knob-vb;
-                    fill: transparent;
                     stroke: root.arc-color;
                     stroke-width: root.compact ? 2.5px : 3px;
                     stroke-line-cap: round;
@@ -305,7 +302,6 @@ export component SamplerKnob inherits Rectangle {
                     commands: SamplerCurves.knob-detent();
                     viewbox-width: SamplerCurves.knob-vb;
                     viewbox-height: SamplerCurves.knob-vb;
-                    fill: transparent;
                     stroke: SamplerStyle.rail-hi;
                     stroke-width: 1px;
                 }
@@ -326,7 +322,6 @@ export component SamplerKnob inherits Rectangle {
                     commands: SamplerCurves.knob-pointer(root.value);
                     viewbox-width: SamplerCurves.knob-vb;
                     viewbox-height: SamplerCurves.knob-vb;
-                    fill: transparent;
                     stroke: root.enabled ? SamplerStyle.text : SamplerStyle.text-faint;
                     stroke-width: 1.5px;
                     stroke-line-cap: round;

@@ -33,6 +33,258 @@ pub struct TempoMap {
     pub changes: Vec<TempoChange>,
 }
 
+/// Tipo de marcador na timeline.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MarkerType {
+    /// Marcador de posição simples (ponto único)
+    Position,
+    /// Marcador de região (início + fim)
+    RegionStart,
+    RegionEnd,
+    /// Marcador de loop (início + fim, usado para repetição)
+    LoopStart,
+    LoopEnd,
+    /// Marcador de CD (índice de faixa CD)
+    CDTrack,
+}
+
+/// Marcador na timeline — ponto ou região nomeada.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Marker {
+    /// ID único do marcador
+    pub id: u64,
+    /// Tipo do marcador
+    pub marker_type: MarkerType,
+    /// Posição em beats
+    pub beat: f32,
+    /// Para regiões/loops: beat final (ignorado para Position)
+    pub end_beat: Option<f32>,
+    /// Nome/label do marcador
+    pub name: String,
+    /// Cor do marcador (índice na paleta)
+    pub color: u8,
+    /// Para marcadores CD: número da faixa (1-based)
+    pub cd_track: Option<u32>,
+}
+
+impl Marker {
+    /// Cria um marcador de posição simples
+    pub fn position(id: u64, beat: f32, name: impl Into<String>) -> Self {
+        Self {
+            id,
+            marker_type: MarkerType::Position,
+            beat,
+            end_beat: None,
+            name: name.into(),
+            color: 0,
+            cd_track: None,
+        }
+    }
+
+    /// Cria um marcador de região (início)
+    pub fn region_start(id: u64, beat: f32, name: impl Into<String>) -> Self {
+        Self {
+            id,
+            marker_type: MarkerType::RegionStart,
+            beat,
+            end_beat: None,
+            name: name.into(),
+            color: 0,
+            cd_track: None,
+        }
+    }
+
+    /// Cria um marcador de região (fim) — emparelha com region_start pelo mesmo ID
+    pub fn region_end(id: u64, beat: f32) -> Self {
+        Self {
+            id,
+            marker_type: MarkerType::RegionEnd,
+            beat,
+            end_beat: None,
+            name: String::new(),
+            color: 0,
+            cd_track: None,
+        }
+    }
+
+    /// Cria um marcador de loop
+    pub fn loop_marker(id: u64, start_beat: f32, end_beat: f32, name: impl Into<String>) -> Self {
+        Self {
+            id,
+            marker_type: MarkerType::LoopStart,
+            beat: start_beat,
+            end_beat: Some(end_beat),
+            name: name.into(),
+            color: 0,
+            cd_track: None,
+        }
+    }
+
+    /// Cria um marcador de faixa CD
+    pub fn cd_track(id: u64, beat: f32, track_num: u32, name: impl Into<String>) -> Self {
+        Self {
+            id,
+            marker_type: MarkerType::CDTrack,
+            beat,
+            end_beat: None,
+            name: name.into(),
+            color: 0,
+            cd_track: Some(track_num),
+        }
+    }
+
+    /// Retorna true se este marcador representa o início de uma região/loop
+    pub fn is_region_start(&self) -> bool {
+        matches!(self.marker_type, MarkerType::RegionStart | MarkerType::LoopStart)
+    }
+
+    /// Retorna true se este marcador representa o fim de uma região/loop
+    pub fn is_region_end(&self) -> bool {
+        matches!(self.marker_type, MarkerType::RegionEnd | MarkerType::LoopEnd)
+    }
+
+    /// Retorna o beat final (para regiões/loops) ou o próprio beat
+    pub fn end_beat_or_self(&self) -> f32 {
+        self.end_beat.unwrap_or(self.beat)
+    }
+}
+
+/// Coleção de marcadores do projeto
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct MarkerMap {
+    pub markers: Vec<Marker>,
+    next_id: u64,
+}
+
+impl MarkerMap {
+    pub fn new() -> Self {
+        Self {
+            markers: Vec::new(),
+            next_id: 1,
+        }
+    }
+
+    fn next_id(&mut self) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
+        id
+    }
+
+    /// Adiciona um marcador de posição
+    pub fn add_position(&mut self, beat: f32, name: impl Into<String>) -> u64 {
+        let id = self.next_id();
+        self.markers.push(Marker::position(id, beat, name));
+        self.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+        id
+    }
+
+    /// Adiciona uma região (retorna ID do marcador de início)
+    pub fn add_region(&mut self, start_beat: f32, end_beat: f32, name: impl Into<String>) -> u64 {
+        let id = self.next_id();
+        let name = name.into();
+        self.markers.push(Marker::region_start(id, start_beat, name.clone()));
+        self.markers.push(Marker::region_end(id, end_beat));
+        self.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+        id
+    }
+
+    /// Adiciona um loop
+    pub fn add_loop(&mut self, start_beat: f32, end_beat: f32, name: impl Into<String>) -> u64 {
+        let id = self.next_id();
+        self.markers.push(Marker::loop_marker(id, start_beat, end_beat, name));
+        // Marcador de fim do loop (mesmo ID, tipo LoopEnd)
+        self.markers.push(Marker {
+            id,
+            marker_type: MarkerType::LoopEnd,
+            beat: end_beat,
+            end_beat: None,
+            name: String::new(),
+            color: 0,
+            cd_track: None,
+        });
+        self.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+        id
+    }
+
+    /// Adiciona um marcador CD
+    pub fn add_cd_track(&mut self, beat: f32, track_num: u32, name: impl Into<String>) -> u64 {
+        let id = self.next_id();
+        self.markers.push(Marker::cd_track(id, beat, track_num, name));
+        self.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+        id
+    }
+
+    /// Remove um marcador por ID (remove ambos início/fim se for região/loop)
+    pub fn remove(&mut self, id: u64) -> bool {
+        let len_before = self.markers.len();
+        self.markers.retain(|m| m.id != id);
+        self.markers.len() != len_before
+    }
+
+    /// Move um marcador (e seu par se for região/loop)
+    pub fn move_marker(&mut self, id: u64, new_beat: f32) -> bool {
+        let indices: Vec<usize> = self.markers.iter().enumerate()
+            .filter(|(_, m)| m.id == id)
+            .map(|(i, _)| i)
+            .collect();
+        
+        if indices.is_empty() {
+            return false;
+        }
+
+        for idx in indices {
+            self.markers[idx].beat = new_beat.max(0.0);
+        }
+        self.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+        true
+    }
+
+    /// Atualiza o beat final de uma região/loop
+    pub fn set_end_beat(&mut self, id: u64, end_beat: f32) -> bool {
+        let indices: Vec<usize> = self.markers.iter().enumerate()
+            .filter(|(_, m)| m.id == id && m.is_region_end())
+            .map(|(i, _)| i)
+            .collect();
+
+        if indices.is_empty() {
+            return false;
+        }
+
+        for idx in indices {
+            self.markers[idx].beat = end_beat.max(0.0);
+        }
+        self.markers.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+        true
+    }
+
+    /// Retorna marcadores no intervalo de beats
+    pub fn markers_in_range(&self, start_beat: f32, end_beat: f32) -> Vec<&Marker> {
+        self.markers.iter()
+            .filter(|m| m.beat >= start_beat && m.beat <= end_beat)
+            .collect()
+    }
+
+    /// Retorna o próximo marcador após o beat dado
+    pub fn next_marker_after(&self, beat: f32) -> Option<&Marker> {
+        self.markers.iter()
+            .filter(|m| m.beat > beat)
+            .min_by(|a, b| a.beat.total_cmp(&b.beat))
+    }
+
+    /// Retorna o marcador anterior ao beat dado
+    pub fn prev_marker_before(&self, beat: f32) -> Option<&Marker> {
+        self.markers.iter()
+            .filter(|m| m.beat < beat)
+            .max_by(|a, b| a.beat.total_cmp(&b.beat))
+    }
+
+    /// Limpa todos os marcadores
+    pub fn clear(&mut self) {
+        self.markers.clear();
+        self.next_id = 1;
+    }
+}
+
 impl TempoMap {
     /// Cria um mapa de tempo constante com o BPM dado.
     pub fn from_bpm(bpm: f32) -> Self {
