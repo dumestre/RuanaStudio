@@ -401,6 +401,8 @@ export component Workspace inherits Rectangle {
 
     callback play-state-changed(bool);
 
+    callback record-state-changed(bool);
+
     callback seek-to(float);
 
     callback set-bpm(float);
@@ -619,6 +621,9 @@ export component Workspace inherits Rectangle {
 
             play-state-changed(state) => {
                 root.play-state-changed(state);
+            }
+            record-state-changed(state) => {
+                root.record-state-changed(state);
             }
             loop-state-changed(state) => { root.loop-enabled = state; root.loop-state-changed(state); }
             metronome-state-changed(enabled) => { root.metronome-state-changed(enabled); }

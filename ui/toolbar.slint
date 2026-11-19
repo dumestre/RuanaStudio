@@ -46,6 +46,7 @@ export component Toolbar inherits Rectangle {
     in-out property <float> master-volume: 0.7;
 
     callback play-state-changed(bool);
+    callback record-state-changed(bool);
     callback loop-state-changed(bool);
     callback metronome-state-changed(bool);
     callback metronome-sound-changed(int);
@@ -415,6 +416,10 @@ export component Toolbar inherits Rectangle {
 
             play-state-changed(state) => {
                 root.play-state-changed(state);
+            }
+
+            record-state-changed(state) => {
+                root.record-state-changed(state);
             }
 
             loop-state-changed(state) => {

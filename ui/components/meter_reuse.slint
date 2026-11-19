@@ -41,6 +41,7 @@ export component StereoMeter inherits Rectangle {
     HorizontalLayout {
         x: 0; y: 0; width: parent.width; height: parent.height;
         alignment: center;
+        cross-axis-alignment: CrossAxisAlignment.center;
         spacing: root.channel-gap / 2;
 
         // CANAL L

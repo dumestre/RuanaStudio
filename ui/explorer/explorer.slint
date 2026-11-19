@@ -64,7 +64,6 @@ export component Explorer inherits Rectangle {
 
 
     VerticalLayout {
-        alignment: LayoutAlignment.stretch;
         padding: 6px;
         spacing: 6px;
 
@@ -125,7 +124,6 @@ export component Explorer inherits Rectangle {
             horizontal-stretch: 1;
             vertical-stretch: 1;
 
-            background: transparent;
 
             if root.browser-mode == 0 : FileBrowser {
                 entries: root.entries;
@@ -168,7 +166,6 @@ export component Explorer inherits Rectangle {
             if root.browser-mode == 1 : MediaBrowser {
                 media: [];
                 categories: ["All", "Loops", "One-Shot", "Vocals", "MIDI"];
-                category-filter: "All";
                 selected-index: -1;
 
                 media-selected(name, type, path) => {
@@ -216,9 +213,7 @@ export component Explorer inherits Rectangle {
         Preview {
             file-name: root.preview-file-name;
             file-info: root.preview-file-info;
-            duration: "00:00";
-            progress: 0.0;
-            playing: false;
+
 
             play => {
                 // Ligação com o engine virá depois.

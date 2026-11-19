@@ -40,7 +40,6 @@ export component BarProperties inherits Rectangle {
 
     height: 32px;
 
-    background: transparent;
     
 
 
@@ -59,7 +58,6 @@ export component BarProperties inherits Rectangle {
         padding-left: 8px;
         padding-right: 8px;
         spacing: 3px;
-        alignment: LayoutAlignment.stretch;
         cross-axis-alignment: CrossAxisAlignment.center;
 
 
@@ -79,16 +77,15 @@ export component BarProperties inherits Rectangle {
             height: 18px;
             resting-bg: Theme.surface-high;
             icon: @image-url("../icons/clippool.svg");
-            icon-size: 16px;
+
             icon-color: Theme.text-primary;
-            text: "";
+    
             borderless: true;
-            corner-radius: 4px;
+  
             toggled: root.clip-pool-open;
             toggled-fg: Theme.on-accent;
             toggled-bg: Theme.accent;
             toggled-icon-color: Theme.on-accent;
-            subtle-toggled: false;
             clicked => {
                 root.clip-pool-open = !root.clip-pool-open;
             }
@@ -113,9 +110,9 @@ export component BarProperties inherits Rectangle {
         // GAIN
         // ========================================================
         Rectangle {
-            width: 58px; height: 26px; background: transparent;
+            width: 58px; height: 26px;
             VerticalLayout {
-                spacing: 0px; alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
+                alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
                 Text { text: "GAIN"; color: Theme.text-dim; font-size: 8px; horizontal-alignment: center; vertical-alignment: center; height: 11px; }
                 TextInput { text: root.gain + " dB"; color: Theme.text-primary; font-size: 10px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; height: 13px; }
             }
@@ -136,9 +133,9 @@ export component BarProperties inherits Rectangle {
         // PITCH
         // ========================================================
         Rectangle {
-            width: 58px; height: 26px; background: transparent;
+            width: 58px; height: 26px;
             VerticalLayout {
-                spacing: 0px; alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
+                alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
                 Text { text: "PITCH"; color: Theme.text-dim; font-size: 8px; horizontal-alignment: center; vertical-alignment: center; height: 11px; }
                 Text { text: root.pitch + " st"; color: Theme.text-primary; font-size: 10px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; height: 13px; }
             }
@@ -158,9 +155,9 @@ export component BarProperties inherits Rectangle {
         // OCTAVE
         // ========================================================
         Rectangle {
-            width: 58px; height: 26px; background: transparent;
+            width: 58px; height: 26px;
             VerticalLayout {
-                spacing: 0px; alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
+                alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
                 Text { text: "OCTAVE"; color: Theme.text-dim; font-size: 8px; horizontal-alignment: center; vertical-alignment: center; height: 11px; }
                 TextInput { text: root.octave + " oct"; color: Theme.text-primary; font-size: 10px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; height: 13px; }
             }
@@ -180,9 +177,9 @@ export component BarProperties inherits Rectangle {
         // PAN
         // ========================================================
         Rectangle {
-            width: 58px; height: 26px; background: transparent;
+            width: 58px; height: 26px; 
             VerticalLayout {
-                spacing: 0px; alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
+                alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
                 Text { text: "PAN"; color: Theme.text-dim; font-size: 8px; horizontal-alignment: center; vertical-alignment: center; height: 11px; }
                 TextInput { text: root.pan == 0 ? "C" : root.pan; color: Theme.text-primary; font-size: 10px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; height: 13px; }
             }
@@ -202,14 +199,14 @@ export component BarProperties inherits Rectangle {
         // INVERT PHASE
         // ========================================================
         Rectangle {
-            width: 58px; height: 26px; background: transparent;
+            width: 58px; height: 26px;
             
             TouchArea {
                 clicked => { root.phase-inverted = !root.phase-inverted; }
             }
 
             VerticalLayout {
-                spacing: 0px; alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
+                alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
                 Text { text: "PHASE"; color: Theme.text-dim; font-size: 8px; horizontal-alignment: center; vertical-alignment: center; height: 11px; }
                 Text { 
                     text: root.phase-inverted ? "180°" : "0°"; 
@@ -233,14 +230,14 @@ export component BarProperties inherits Rectangle {
         // REVERSE
         // ========================================================
         Rectangle {
-            width: 58px; height: 26px; background: transparent;
+            width: 58px; height: 26px;
             
             TouchArea {
                 clicked => { root.reversed = !root.reversed; }
             }
 
             VerticalLayout {
-                spacing: 0px; alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
+                alignment: LayoutAlignment.center; cross-axis-alignment: CrossAxisAlignment.center;
                 Text { text: "REVERSE"; color: Theme.text-dim; font-size: 8px; horizontal-alignment: center; vertical-alignment: center; height: 11px; }
                 Text { 
                     text: root.reversed ? "ON" : "OFF"; 
@@ -287,13 +284,12 @@ export component BarProperties inherits Rectangle {
                 drop-shadow-offset-x: 1.5px;
 
             width: 18px; height: 18px; resting-bg: Theme.surface-high;
-            icon: @image-url("../icons/drum.svg"); icon-size: 16px; icon-color: Theme.text-primary;
-            text: ""; borderless: true; corner-radius: 4px;
+            icon: @image-url("../icons/drum.svg"); icon-color: Theme.text-primary;
+            borderless: true;
             toggled: root.beat-open;
             toggled-fg: Theme.is-paper ? Theme.text-primary : Theme.on-accent;
             toggled-bg: Theme.accent;
             toggled-icon-color: Theme.is-paper ? Theme.text-primary : Theme.on-accent;
-            subtle-toggled: false;
             clicked => { root.beat-open = !root.beat-open; }
         }
 
@@ -307,13 +303,12 @@ export component BarProperties inherits Rectangle {
                 drop-shadow-offset-x: 1.5px;
 
             width: 18px; height: 18px; resting-bg: Theme.surface-high;
-            icon: @image-url("../icons/folder.svg"); icon-size: 16px; icon-color: Theme.text-primary;
-            text: ""; borderless: true; corner-radius: 4px;
+            icon: @image-url("../icons/folder.svg"); icon-color: Theme.text-primary;
+            borderless: true;
             toggled: root.explorer-visible;
             toggled-fg: Theme.is-paper ? Theme.text-primary : Theme.on-accent;
             toggled-bg: Theme.accent;
             toggled-icon-color: Theme.is-paper ? Theme.text-primary : Theme.on-accent;
-            subtle-toggled: false;
             clicked => { root.explorer-visible = !root.explorer-visible; }
         }
 
@@ -327,13 +322,13 @@ export component BarProperties inherits Rectangle {
                 drop-shadow-offset-x: 1.5px;
 
             width: 18px; height: 18px; resting-bg: Theme.surface-high;
-            icon: @image-url("../icons/restore.svg"); icon-size: 16px; icon-color: Theme.text-primary;
-            text: ""; borderless: true; corner-radius: 4px;
+            icon: @image-url("../icons/restore.svg"); icon-color: Theme.text-primary;
+            borderless: true; 
             toggled: root.panel-visible;
             toggled-fg: Theme.is-paper ? Theme.text-primary : Theme.on-accent;
             toggled-bg: Theme.accent;
             toggled-icon-color: Theme.is-paper ? Theme.text-primary : Theme.on-accent;
-            subtle-toggled: false;
+            
             clicked => { root.panel-visible = !root.panel-visible; }
         }
     }

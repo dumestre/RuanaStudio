@@ -31,6 +31,8 @@ windows-sys = { version = "0.61", features = [
     "Win32_Graphics_OpenGL",
 ] }
 libloading = "0.9.0"
+# midir = { version = "0.10" }  // TODO: fix ALSA conflict with cpal (alsa-sys version mismatch)
+serde = { version = "1.0", features = ["derive"] }
 
 [target.'cfg(not(windows))'.dependencies]
 rfd = "0.17"

@@ -77,9 +77,6 @@ export component SamplerArea inherits Rectangle {
     background: Theme.base;
 
     VerticalLayout {
-        spacing: 0;
-
-        alignment: LayoutAlignment.stretch;
         cross-axis-alignment: CrossAxisAlignment.stretch;
 
         if root.show-header: PanelHeader {
@@ -106,8 +103,7 @@ export component SamplerArea inherits Rectangle {
     }
 
     if root.drop-hover: Rectangle {
-        width: 100%;
-        height: 100%;
+
         background: Theme.accent.brighter(-0.92);
         border-width: 2px;
         border-color: Theme.accent;

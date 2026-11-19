@@ -36,6 +36,12 @@ mod importer;
 mod interaction;
 mod meters;
 #[macro_use]
+mod midi_input;
+mod midi_recording;
+mod daw_midi_reexport {
+    pub use daw_midi::*;
+}
+#[macro_use]
 mod mixer;
 mod models;
 mod os_drop;
@@ -390,6 +396,109 @@ pub fn setup(
     {
         let project = project.clone();
         beat::wire_beat(ui, project, audio.clone(), transport.clone());
+    }
+
+    // MIDI Recording: entrada MIDI + estado de gravação.
+    let midi_input = crate::midi_input::SharedMidiInput::new();
+    let midi_input_manager = Rc::new(RefCell::new(
+        crate::midi_input::MidiInputManager::new(midi_input.event_tx.clone())
+            .unwrap_or_else(|e| {
+                eprintln!("[midi] Falha ao criar MidiInputManager: {}", e);
+                panic!("MIDI input manager required");
+            })
+    ));
+
+    // Preenche lista de dispositivos MIDI na UI.
+    {
+        let ports = midi_input_manager.borrow().list_ports();
+        let port_names: Vec<slint::SharedString> = ports.iter()
+            .map(|s| slint::SharedString::from(s.as_str()))
+            .collect();
+        ui.set_midi_input_devices(Rc::new(slint::VecModel::from(port_names)).into());
+    }
+
+    // Callback para trocar dispositivo MIDI.
+    {
+        let manager = midi_input_manager.clone();
+        ui.on_midi_input_device_changed(move |index| {
+            if let Err(e) = manager.borrow_mut().connect_port(index as usize) {
+                eprintln!("[midi] Falha ao conectar dispositivo {}: {}", index, e);
+            }
+        });
+    }
+
+    // Callback para estado de gravação (botão REC do transport).
+    {
+        let project = project.clone();
+        let transport = transport.clone();
+        let bridge = bridge.clone();
+        let midi_input = midi_input.clone();
+        let manager = midi_input_manager.clone();
+
+        ui.on_record_state_changed(move |recording| {
+            let mut proj = project.borrow_mut();
+            let _trans = transport.lock().unwrap();
+            let _br = bridge.borrow_mut();
+
+            if recording {
+                // Inicia gravação: encontra/cria track MIDI armada
+                let track_id = proj.tracks.iter().find(|t| t.is_midi())
+                    .map(|t| t.id)
+                    .or_else(|| {
+                        // Cria track MIDI se não houver
+                        let track_count = proj.tracks.len();
+                        let new_id = track_count as u64 + 1;
+                        let _ = proj.add_track(daw_core::track::TrackKind::Midi, format!("MIDI {}", track_count + 1));
+                        Some(new_id)
+                    });
+
+                if let Some(track_id) = track_id {
+                    // Cria clip MIDI vazio para gravar
+                    let current_beat = _trans.position_ticks as f32 / _trans.ppq as f32;
+                    let clip_id = proj.add_clip(track_id, daw_core::clip::ClipKind::Midi, "MIDI Recording", current_beat, 4.0);
+                    
+                    if let Some(clip_id) = clip_id {
+                        let rec_state = midi_input.state.lock().unwrap();
+                        // TODO: Iniciar gravação com clip_id
+                        drop(rec_state);
+                        eprintln!("[midi] Iniciando gravação no track {} clip {}", track_id, clip_id);
+                    }
+                }
+            } else {
+                // Para gravação
+                eprintln!("[midi] Parando gravação");
+            }
+        });
+    }
+
+    // MIDI record arm toggle
+    {
+        let midi_input = midi_input.clone();
+        ui.on_midi_record_arm_changed(move |armed| {
+            let mut state = midi_input.state.lock().unwrap();
+            state.armed = armed;
+            eprintln!("[midi] Record armed: {}", armed);
+        });
+    }
+
+    // MIDI record channel changed
+    {
+        let midi_input = midi_input.clone();
+        ui.on_midi_record_channel_changed(move |channel| {
+            let mut state = midi_input.state.lock().unwrap();
+            state.record_channel = channel as u8;
+            eprintln!("[midi] Record channel: {}", channel);
+        });
+    }
+
+    // MIDI quantize changed
+    {
+        let midi_input = midi_input.clone();
+        ui.on_midi_quantize_changed(move |denom| {
+            let mut state = midi_input.state.lock().unwrap();
+            state.quantize_denom = denom;
+            eprintln!("[midi] Quantize denominator: {}", denom);
+        });
     }
 
     // Filtro de carga do sampler compartilhado pelos três caminhos (diálogo,

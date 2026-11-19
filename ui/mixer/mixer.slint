@@ -82,12 +82,11 @@ export component Mixer inherits Rectangle {
     in-out property <length> natural-height:
         (root.show-header ? 30px : 0px) + root.content-natural-height;
 
-    background: transparent;
+
     border-radius: 8px;
 
     VerticalLayout {
-        spacing: 0;
-        alignment: LayoutAlignment.stretch;
+   
         cross-axis-alignment: CrossAxisAlignment.center;
 
         
@@ -106,8 +105,7 @@ export component Mixer inherits Rectangle {
         HorizontalLayout {
             width: 100%;
             vertical-stretch: 1;
-            spacing: 0;
-            alignment: LayoutAlignment.stretch;
+       
             cross-axis-alignment: CrossAxisAlignment.stretch;
 
             flickable := Flickable {
@@ -115,12 +113,11 @@ export component Mixer inherits Rectangle {
                 vertical-stretch: 1;
                 content-width: max((root.mutes.length - 1) * root.channel-width, self.width);
                 content-height: self.height;
-                interactive: true;
+             
 
                 HorizontalLayout {
                     height: 100%;
-                    spacing: 0;
-                    alignment: LayoutAlignment.stretch;
+                 
                     cross-axis-alignment: CrossAxisAlignment.stretch;
 
                     for m[i] in root.mutes: MixerChannel {

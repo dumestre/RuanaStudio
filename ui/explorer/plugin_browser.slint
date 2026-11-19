@@ -47,7 +47,6 @@ export component PluginBrowser inherits Rectangle {
 
     callback plugin-selected(string, string);
 
-    background: transparent;
 
     VerticalLayout {
         alignment: LayoutAlignment.start;
@@ -94,7 +93,6 @@ export component PluginBrowser inherits Rectangle {
         // Filtros
         Rectangle {
             height: 26px;
-            background: transparent;
 
             HorizontalLayout {
                 alignment: LayoutAlignment.space-around;
@@ -228,14 +226,13 @@ export component PluginBrowser inherits Rectangle {
             horizontal-stretch: 1;
             vertical-stretch: 1;
 
-            background: transparent;
+
 
             HorizontalLayout {
-                alignment: LayoutAlignment.stretch;
+
                 cross-axis-alignment: CrossAxisAlignment.center;
 
             VerticalLayout {
-                alignment: LayoutAlignment.stretch;
                 spacing: 1px;
 
                 Text {

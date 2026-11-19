@@ -345,6 +345,9 @@ export component MainWindow inherits Window {
     // parada). O callback global acima é o transporte/timeline.
     callback beat-play-state-changed(bool);
 
+    // Gravação (botão REC do transport).
+    callback record-state-changed(bool);
+
     callback seek-to(float);
 
     // BPM novo (inteiro). O backend atualiza o Transport e
@@ -353,6 +356,21 @@ export component MainWindow inherits Window {
     callback metronome-state-changed(bool);
     callback metronome-sound-changed(int);
     callback metronome-volume-changed(float);
+
+    // =====================================================
+    // MIDI RECORDING
+    // =====================================================
+
+    in-out property <[string]> midi-input-devices: [];
+    in-out property <int> midi-selected-device: -1;
+    in-out property <bool> midi-record-armed: false;
+    in-out property <int> midi-record-channel: 0; // 0 = all channels
+    in-out property <int> midi-quantize-denom: 16; // 16 = 1/16 note
+
+    callback midi-input-device-changed(int);
+    callback midi-record-arm-changed(bool);
+    callback midi-record-channel-changed(int);
+    callback midi-quantize-changed(int);
 
     callback window-close;
 

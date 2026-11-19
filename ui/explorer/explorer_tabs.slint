@@ -27,12 +27,9 @@ component ExplorerTab inherits Rectangle {
 
         Image {
             source: root.icon-image;
-            vertical-alignment: ImageVerticalAlignment.center;
             visible: root.icon-image.width > 0;
             width: 15px;
             height: 15px;
-            horizontal-alignment: ImageHorizontalAlignment.center;
-            image-rendering: ImageRendering.smooth;
             colorize: root.active
                 ? Theme.accent
                 : Theme.text-dim;
@@ -82,7 +79,6 @@ export component ExplorerTabs inherits Rectangle {
 
         ExplorerTab {
             label: "Files";
-            icon: "";
             icon-image: @image-url("../icons/disk.svg");
             active: root.selected == 0;
 
@@ -94,7 +90,6 @@ export component ExplorerTabs inherits Rectangle {
 
         ExplorerTab {
             label: "Media";
-            icon: "";
             icon-image: @image-url("../icons/media.svg");
             active: root.selected == 1;
 
@@ -106,7 +101,6 @@ export component ExplorerTabs inherits Rectangle {
 
         ExplorerTab {
             label: "Plugins";
-            icon: "";
             icon-image: @image-url("../icons/plugin.svg");
             active: root.selected == 2;
 

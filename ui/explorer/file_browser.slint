@@ -35,10 +35,10 @@ export component FileBrowser inherits Rectangle {
     property <bool> can-back: root.history-index > 0;
     property <bool> can-forward: root.history-index < root.path-history.length - 1;
 
-    background: transparent;
+
 
     VerticalLayout {
-        alignment: LayoutAlignment.stretch;
+
         cross-axis-alignment: CrossAxisAlignment.stretch;
         spacing: 5px;
 
@@ -55,7 +55,7 @@ export component FileBrowser inherits Rectangle {
                 padding-left: 4px;
                 padding-right: 4px;
                 spacing: 2px;
-                alignment: LayoutAlignment.stretch;
+
                 cross-axis-alignment: CrossAxisAlignment.center;
 
                 Rectangle {
@@ -153,7 +153,7 @@ export component FileBrowser inherits Rectangle {
                         ? Theme.surface-high
                         : transparent;
                     border-radius: 3px;
-                    opacity: 1.0;
+
 
                     Image {
                         source: @image-url("../icons/computer.svg");
@@ -259,7 +259,7 @@ export component FileBrowser inherits Rectangle {
         Rectangle {
             horizontal-stretch: 1;
             vertical-stretch: 1;
-            background: transparent;
+      
             clip: true;
 
             ScrollView {
@@ -267,7 +267,7 @@ export component FileBrowser inherits Rectangle {
                 height: 100%;
 
                 VerticalLayout {
-                    alignment: LayoutAlignment.stretch;
+         
                     cross-axis-alignment: CrossAxisAlignment.center;
                     spacing: 1px;
 

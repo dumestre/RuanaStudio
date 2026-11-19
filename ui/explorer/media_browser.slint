@@ -21,7 +21,6 @@ export component MediaBrowser inherits Rectangle {
     callback audio-drag-moved(length, length);
     callback audio-drag-finished();
 
-    background: transparent;
 
     VerticalLayout {
         alignment: LayoutAlignment.start;
@@ -103,10 +102,9 @@ export component MediaBrowser inherits Rectangle {
         Rectangle {
             horizontal-stretch: 1;
             vertical-stretch: 1;
-            background: transparent;
 
             VerticalLayout {
-                alignment: LayoutAlignment.stretch;
+          
                 cross-axis-alignment: CrossAxisAlignment.stretch;
                 spacing: 1px;
 
