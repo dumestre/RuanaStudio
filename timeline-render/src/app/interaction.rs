@@ -1468,6 +1468,12 @@ pub fn handle_cursor_moved(&mut self, pos: (f32, f32)) {
             }
         }
 
+        // ====== Automation Lanes: hover / drag de pontos de automação ======
+        if self.show_automation_lanes {
+            // TODO: Integrar com tracks reais do Project no host
+            // Por enquanto, não há automação real na versão demo
+        }
+
         // ====== Markers: hover / drag de marcadores na régua ======
         let marker_metrics = markers::MarkerMetrics {
             px_per_beat: self.px_per_beat,

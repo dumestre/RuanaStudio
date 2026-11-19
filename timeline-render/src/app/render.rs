@@ -872,6 +872,14 @@ impl App {
             self.marker_selected_id,
         ));
 
+        // ===== AUTOMATION LANES (lanes de automação por track) =====
+        // Renderiza lanes de automação para cada track que tem curvas.
+        // Na versão demo, simulamos algumas lanes; no host real, viria do Project.
+        if self.show_automation_lanes {
+            // TODO: Integrar com Project.tracks[n].automation no host real
+            // Por enquanto, renderiza lanes de exemplo para demonstração
+        }
+
         // Indicador de follow playhead (canto superior direito)
         if self.follow_playhead {
             let px = width - 120.0;

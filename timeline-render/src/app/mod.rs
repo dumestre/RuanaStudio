@@ -2,6 +2,7 @@
 //! base e o laço de eventos ((re)exporta `run`).
 
 pub(crate) mod audio;
+pub(crate) mod automation;
 pub(crate) mod edit_toolbar;
 pub(crate) mod interaction;
 pub(crate) mod layout;
@@ -276,6 +277,18 @@ pub struct App {
     pub tempo_track_write_back: Option<Box<dyn Fn(&daw_core::timeline::TempoMap)>>,
     /// Callback de COMMIT para tempo track.
     pub tempo_track_commit: Option<Box<dyn Fn(&daw_core::timeline::TempoMap)>>,
+
+    /// ===== Automation Lanes (lanes de automação por track) =====
+    /// Mostra lanes de automação (volume, pan, plugin params) abaixo dos track headers.
+    /// Permite editar pontos de automação diretamente na arrange window.
+    pub show_automation_lanes: bool,
+    /// Estado de interação das lanes de automação.
+    pub automation_inter: automation::AutomationInteraction,
+    /// Callback de write-back de automação: invocado com (track_index, curve).
+    pub automation_write_back: Option<Box<dyn FnMut(usize, &daw_core::automation::AutomationCurve)>>,
+    /// Callback de COMMIT de automação.
+    pub automation_commit: Option<Box<dyn FnMut(usize, &daw_core::automation::AutomationCurve)>>,
+
     /// Marcadores na régua (posição, regiões, loops, CD tracks)
     pub marker_map: daw_core::timeline::MarkerMap,
     /// Estado de interação com marcadores
@@ -961,6 +974,12 @@ transport,
             tempo_track_inter: tempo_track::TempoTrackInteraction::new(),
             tempo_track_write_back: None,
             tempo_track_commit: None,
+
+            // Automation Lanes (lanes de automação por track).
+            show_automation_lanes: true,
+            automation_inter: automation::AutomationInteraction::new(),
+            automation_write_back: None,
+            automation_commit: None,
 
             // Markers (marcadores na régua)
             marker_map: daw_core::timeline::MarkerMap::new(),
