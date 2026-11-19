@@ -684,6 +684,20 @@ pub fn setup(
         });
     }
 
+    // Automation lanes callbacks
+    {
+        let project = project.clone();
+        ui.on_automation_param_changed(move |track, param| {
+            project.borrow_mut().set_automation_param(track as usize, param as usize);
+        });
+    }
+    {
+        let project = project.clone();
+        ui.on_automation_lane_toggled(move |track, enabled| {
+            project.borrow_mut().toggle_automation_lane(track as usize, enabled);
+        });
+    }
+
     // Inserts do mixer (janela principal) → core.
     {
         let project_add = project.clone();

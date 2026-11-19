@@ -146,6 +146,11 @@ export component Workspace inherits Rectangle {
         0
     ];
 
+    // Automation lanes
+    in-out property <bool> show-automation-lanes: true;
+    in-out property <length> automation-lane-height: 40px;
+    in-out property <[int]> automation-params: [];
+
     in-out property <[ClipData]> clips: [
         {
             id: 0,
@@ -479,6 +484,10 @@ export component Workspace inherits Rectangle {
     // desenhar o estado e parar aí; agora chegam ao core pela MESMA
     // rota do mixer, o que garante que as duas telas não divergem.
     callback track-param-changed(int, string, float);
+
+    // Automation lanes
+    callback automation-param-changed(int, int);
+    callback automation-lane-toggled(int, bool);
 
     // Apaga o latch de clip de um canal.
     callback channel-clip-cleared(int);
@@ -1124,6 +1133,14 @@ export component Workspace inherits Rectangle {
                             track-arms <=>
                                 root.mixer-arms;
 
+                            // Automation lanes
+                            show-automation-lanes:
+                                root.show-automation-lanes;
+                            automation-lane-height:
+                                root.automation-lane-height;
+                            automation-params:
+                                root.automation-params;
+
                             zoom-y:
                                 root.zoom-y-level;
 
@@ -1200,6 +1217,14 @@ export component Workspace inherits Rectangle {
                                 root.channel-clip-cleared(
                                     channel
                                 );
+                            }
+
+                            // Automation lanes
+                            automation-param-changed(track, param) => {
+                                root.automation-param-changed(track, param);
+                            }
+                            automation-lane-toggled(track, enabled) => {
+                                root.automation-lane-toggled(track, enabled);
                             }
 
                             zoom-y-scrolled(new-zoom-y) => {

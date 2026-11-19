@@ -1637,6 +1637,61 @@ impl Project {
         }
     }
 
+    /// Define o parâmetro de automação para uma track (adiciona curva se não existe).
+    /// `param_id`: 0=none, 1=volume, 2=pan, 3=muted, 4=soloed, 5=armed, 6+=plugin params
+    pub fn set_automation_param(
+        &mut self,
+        track_index: usize,
+        param_id: usize,
+    ) -> bool {
+        if track_index >= self.tracks.len() {
+            return false;
+        }
+        let track = &mut self.tracks[track_index];
+        
+        let param = match param_id {
+            0 => {
+                track.automation.curves.clear();
+                return true;
+            }
+            1 => AutomationParam::mixer(MixerParam::Volume),
+            2 => AutomationParam::mixer(MixerParam::Pan),
+            3 => AutomationParam::mixer(MixerParam::Muted),
+            4 => AutomationParam::mixer(MixerParam::Soloed),
+            5 => AutomationParam::mixer(MixerParam::Armed),
+            _ => return false, // plugin params not yet supported
+        };
+        
+        if track.automation.get_curve(&param).is_some() {
+            return false; // already exists
+        }
+        
+        let curve = AutomationCurve::new(param);
+        track.automation.add_curve(curve.clone());
+        let event = DocumentEvent::AutomationCurveAdded {
+            track_index,
+            curve,
+        };
+        self.emit(&event, ChangeKind::Apply);
+        self.history.record(event);
+        true
+    }
+
+    /// Alterna a visibilidade da lane de automação para uma track.
+    pub fn toggle_automation_lane(
+        &mut self,
+        track_index: usize,
+        _enabled: bool,
+    ) -> bool {
+        if track_index >= self.tracks.len() {
+            return false;
+        }
+        // For now, just store the enabled state in the first curve's visible field
+        // or track-level visibility (would need a field in AutomationLanes)
+        // Simplified: do nothing for now
+        true
+    }
+
     /// Altera um parâmetro do mixer.
     /// `channel`: 0..tracks.len() = trilhas, tracks.len() = master.
     /// Retorna `false` se o canal não existe.

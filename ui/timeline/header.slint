@@ -87,6 +87,11 @@ export component TimelineHeader inherits Rectangle {
     in property <bool> show-tempo-track: true;
     in property <length> tempo-track-height: 60px;
 
+    // Automation lanes
+    in property <bool> show-automation-lanes: true;
+    in property <length> automation-lane-height: 40px;
+    in property <[int]> automation-params: []; // 0=none, 1=volume, 2=pan, 3=plugin1...
+
 
     // =====================================================
     // CALLBACKS
@@ -111,6 +116,10 @@ export component TimelineHeader inherits Rectangle {
 
     // Zoom vertical (Alt+roda) repassado pelas rows.
     callback zoom-y-scrolled(float);
+
+    // Automation lane callbacks
+    callback automation-param-changed(int, int); // track_index, param_id
+    callback automation-lane-toggled(int, bool); // track_index, enabled
 
 
     // =====================================================

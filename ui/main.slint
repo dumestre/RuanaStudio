@@ -333,6 +333,11 @@ export component MainWindow inherits Window {
             0
         ];
 
+    // Automation lanes
+    in-out property <bool> show-automation-lanes: true;
+    in-out property <length> automation-lane-height: 40px;
+    in-out property <[int]> automation-params: [];
+
 
     // =====================================================
     // CALLBACKS
@@ -423,6 +428,10 @@ export component MainWindow inherits Window {
     // Linear: tempo absoluto, com o span do clip decidindo quanto do
     // arquivo é ouvido.
     callback clip-time-mode-toggle-requested(int);
+
+    // Automation lanes
+    callback automation-param-changed(int, int);
+    callback automation-lane-toggled(int, bool);
 
     // Tema ativo: ponte Rust ↔ Theme (o Rust não gera acessor do
     // global `Theme`; `changed` faz o set no global toda troca).
@@ -906,6 +915,9 @@ export component MainWindow inherits Window {
             bottom-panel-visible <=> root.bottom-panel-open;
             track-names <=> root.track-names;
             track-colors <=> root.track-colors;
+            show-automation-lanes <=> root.show-automation-lanes;
+            automation-lane-height <=> root.automation-lane-height;
+            automation-params <=> root.automation-params;
             clips <=> root.clips;
             pool-clips <=> root.pool-clips;
         
@@ -965,6 +977,8 @@ export component MainWindow inherits Window {
             marquee-select(b0, b1, t0, t1) => { root.marquee-select(b0, b1, t0, t1); }
             mixer-param-changed(idx, param, val) => { root.mixer-param-changed(idx, param, val); }
             track-param-changed(ch, param, val) => { root.track-param-changed(ch, param, val); }
+            automation-param-changed(track, param) => { root.automation-param-changed(track, param); }
+            automation-lane-toggled(track, enabled) => { root.automation-lane-toggled(track, enabled); }
             channel-clip-cleared(ch) => { root.channel-clip-cleared(ch); }
             mixer-insert-added(ch) => { root.mixer-insert-added(ch); }
             mixer-insert-removed(ch, slot) => { root.mixer-insert-removed(ch, slot); }

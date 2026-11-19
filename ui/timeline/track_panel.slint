@@ -38,6 +38,11 @@ export component TrackPanel inherits Rectangle {
     in property <bool> show-tempo-track: true;
     in property <length> tempo-track-height: 60px;
 
+    // Automation lanes
+    in property <bool> show-automation-lanes: true;
+    in property <length> automation-lane-height: 40px;
+    in property <[int]> automation-params: [];
+
 
     // =====================================================
     // LARGURA
@@ -73,6 +78,10 @@ export component TrackPanel inherits Rectangle {
 
     // Zoom vertical (Alt+roda) vindo das rows do header.
     callback zoom-y-scrolled(float);
+
+    // Automation lane callbacks
+    callback automation-param-changed(int, int);
+    callback automation-lane-toggled(int, bool);
 
 
     // =====================================================
@@ -150,6 +159,15 @@ export component TrackPanel inherits Rectangle {
         tempo-track-height:
             root.tempo-track-height;
 
+        show-automation-lanes:
+            root.show-automation-lanes;
+
+        automation-lane-height:
+            root.automation-lane-height;
+
+        automation-params:
+            root.automation-params;
+
 
         track-clicked(index) => {
 
@@ -212,11 +230,19 @@ export component TrackPanel inherits Rectangle {
         }
 
 
-        channel-clip-cleared(channel) => {
+channel-clip-cleared(channel) => {
 
             root.channel-clip-cleared(
                 channel
             );
+        }
+
+        automation-param-changed(track, param) => {
+            root.automation-param-changed(track, param);
+        }
+
+        automation-lane-toggled(track, enabled) => {
+            root.automation-lane-toggled(track, enabled);
         }
 
         zoom-y-scrolled(new-zoom-y) => {

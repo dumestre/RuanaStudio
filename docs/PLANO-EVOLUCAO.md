@@ -3,7 +3,7 @@
 > Documento vivo. Cada parte entregue é marcada aqui **no mesmo commit** que
 > implementa a mudança. Se o código mudar de rumo, este arquivo muda junto.
 
-**Última atualização:** 2026-11-17
+**Última atualização:** 2026-11-18
 
 ---
 
@@ -128,20 +128,41 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 
 ---
 
-## Fase 4 — Produção
+## Fase 6 — Automation Lanes
 
-- [ ] **4.1** Export mixdown WAV offline
-- [ ] **4.2** Export de stems por track/bus
-- [ ] **4.3** Freeze/unfreeze de track
-- [ ] **4.4** Loop region + punch in/out + count-in
+- [x] **6.1** Core data structures (`daw-core/src/automation.rs`):
+      `AutomationParam` (mixer + plugin), `InterpolationType` (Linear/Step/Bezier),
+      `AutomationPoint`, `AutomationCurve`, `AutomationLanes` + Track field
+- [x] **6.2** DocumentEvent variants (6): `AutomationCurveAdded/Removed`,
+      `AutomationPointAdded/Moved/Removed`, `AutomationCurveReplaced`
+      + `apply_redo`/`apply_undo` handling
+- [x] **6.3** Project methods: `set_automation_curve()` para write-back/commit
+- [x] **6.4** Timeline-render infrastructure: `app/automation/` (data, interaction, render)
+      + App fields (`show_automation_lanes`, `automation_inter`, write_back/commit)
+- [x] **6.5** Host callbacks: `automation_write_back` / `automation_commit` em `host.rs`
+- [~] **6.6** Slint UI: propriedades/callbacks em `TimelineHeader`, `TrackPanel`,
+      `Workspace`, `MainWindow` + wiring em `main.rs`
+- [ ] **6.7** Render real das curvas no timeline-render (conectar Project tracks)
+- [ ] **6.8** Playback integration no audio engine
+
+**Aceite:** lane visível por track, pontos editáveis, playback aplica valores.
 
 ---
 
-## Fase 5 — Plugins (projeto separado)
+## Fase 7 — Produção (Export/Bounce)
 
-- [ ] **5.1** Decisão de escopo (VST3 / CLAP)
-- [ ] **5.2** Scanner + sandbox + cache de plugins
-- [ ] **5.3** Ponte de áudio (block-based) reutilizando a trait `Processor`
+- [ ] **7.1** Export mixdown WAV offline
+- [ ] **7.2** Export de stems por track/bus
+- [ ] **7.3** Freeze/unfreeze de track
+- [ ] **7.4** Loop region + punch in/out + count-in
+
+---
+
+## Fase 8 — Plugins (projeto separado)
+
+- [ ] **8.1** Decisão de escopo (VST3 / CLAP)
+- [ ] **8.2** Scanner + sandbox + cache de plugins
+- [ ] **8.3** Ponte de áudio (block-based) reutilizando a trait `Processor`
 
 ---
 
@@ -184,3 +205,11 @@ Legenda: `[ ]` pendente · `[~]` em andamento · `[x]` feito · `[!]` bloqueado
 | 2026-11-17 | _este commit_ | feat(mixer): rename inline de canal e insert (Fase 1A.5) |
 | 2026-11-17 | _este commit_ | feat(mixer): cor do canal sincronizada e editável (Fase 1A.6) |
 | 2026-11-17 | _este commit_ | feat(mixer): RMS + peak-hold + luz de clip nos meters (Fase 1A.7) |
+| 2026-11-18 | `2489fde` | feat(tempo): Tempo Track dedicado (Cubase-style) no topo da timeline |
+| 2026-11-18 | `a7b9d62` | refactor(ui): toolbar buttons redesign (ícones normais) |
+| 2026-11-18 | `8028b87` | feat(markers): Markers/Regions completos (core + render + UI + undo) |
+| 2026-11-18 | `5175811` | feat(midi): MIDI Recording stub com integração UI |
+| 2026-11-18 | `27f1e85` | feat(automation): Core data structures + DocumentEvent + Project DTO |
+| 2026-11-18 | `f5cecbe` | feat(automation): Rendering & interaction infra (timeline-render) |
+| 2026-11-18 | `987bc87` | feat(automation): Project::set_automation_curve + host callbacks |
+| 2026-11-18 | _este commit_ | feat(automation): Slint UI integration (MainWindow → Workspace → TrackPanel) |
