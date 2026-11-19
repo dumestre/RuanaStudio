@@ -29,6 +29,7 @@ impl App {
                 kind: TrackKind::Audio,
                 color: 0,
                 mixer: MixerChannel::default(),
+                automation: daw_core::automation::AutomationLanes::new(),
             });
         }
 

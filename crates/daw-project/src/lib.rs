@@ -13,6 +13,7 @@
 use std::fmt;
 use std::path::Path;
 
+use daw_core::automation::AutomationLanes;
 use daw_core::clip::{Clip, ClipKind, TimeMode, WarpMarker};
 use daw_core::mixer::{InsertSlot, MixerChannel};
 use daw_core::project::Project;
@@ -569,6 +570,7 @@ impl From<&TrackDto> for Track {
             kind: TrackKind::from(d.kind),
             color: d.color,
             mixer: d.mixer.to_channel(),
+            automation: AutomationLanes::new(),
         }
     }
 }

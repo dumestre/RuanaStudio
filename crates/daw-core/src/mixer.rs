@@ -4,8 +4,10 @@
 //! o projeto tem um canal master. A UI projeta esse estado; o
 //! valor autoritativo vive aqui (UI-agnostic).
 
+use serde::{Deserialize, Serialize};
+
 /// Parâmetro de canal que pode ser alterado.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MixerParam {
     Volume,
     Pan,

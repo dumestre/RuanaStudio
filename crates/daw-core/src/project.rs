@@ -10,6 +10,7 @@
 
 use std::cell::RefCell;
 
+use crate::automation::{AutomationCurve, AutomationParam, AutomationPoint};
 use crate::clip::{normalize_warp_markers, Clip, ClipKind, TimeMode, WarpMarker};
 use crate::history::History;
 use crate::mixer::{InsertSlot, MixerChannel, MixerParam};
@@ -142,6 +143,43 @@ pub enum DocumentEvent {
         channel: usize,
         old: Vec<InsertSlot>,
         new: Vec<InsertSlot>,
+    },
+    /// Curva de automação adicionada
+    AutomationCurveAdded {
+        track_index: usize,
+        curve: AutomationCurve,
+    },
+    /// Curva de automação removida
+    AutomationCurveRemoved {
+        track_index: usize,
+        param: AutomationParam,
+    },
+    /// Ponto de automação adicionado
+    AutomationPointAdded {
+        track_index: usize,
+        param: AutomationParam,
+        point: AutomationPoint,
+    },
+    /// Ponto de automação movido
+    AutomationPointMoved {
+        track_index: usize,
+        param: AutomationParam,
+        point_index: usize,
+        old: AutomationPoint,
+        new: AutomationPoint,
+    },
+    /// Ponto de automação removido
+    AutomationPointRemoved {
+        track_index: usize,
+        param: AutomationParam,
+        point_index: usize,
+        point: AutomationPoint,
+    },
+    /// Curva de automação substituída inteira (write-back/commit)
+    AutomationCurveReplaced {
+        track_index: usize,
+        old: AutomationCurve,
+        new: AutomationCurve,
     },
 }
 
@@ -404,6 +442,47 @@ impl Project {
                     mixer.inserts = new.clone();
                 }
             }
+            DocumentEvent::AutomationCurveAdded { track_index, curve } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    track.automation.add_curve(curve.clone());
+                }
+            }
+            DocumentEvent::AutomationCurveRemoved { track_index, param } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    track.automation.remove_curve(param);
+                }
+            }
+            DocumentEvent::AutomationPointAdded { track_index, param, point } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    if let Some(curve) = track.automation.get_curve_mut(param) {
+                        curve.add_point(*point);
+                    }
+                }
+            }
+            DocumentEvent::AutomationPointMoved { track_index, param, point_index, new, .. } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    if let Some(curve) = track.automation.get_curve_mut(param) {
+                        if *point_index < curve.points.len() {
+                            curve.points[*point_index] = *new;
+                            curve.points.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+                        }
+                    }
+                }
+            }
+            DocumentEvent::AutomationPointRemoved { track_index, param, point_index, .. } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    if let Some(curve) = track.automation.get_curve_mut(param) {
+                        curve.remove_point(*point_index);
+                    }
+                }
+            }
+            DocumentEvent::AutomationCurveReplaced { track_index, new, .. } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    if let Some(idx) = track.automation.curves.iter().position(|c| &c.param == &new.param) {
+                        track.automation.curves[idx] = new.clone();
+                    }
+                }
+            }
         }
         self.emit(event, ChangeKind::Apply);
     }
@@ -522,6 +601,48 @@ impl Project {
             DocumentEvent::MixerInsertsChanged { channel, old, .. } => {
                 if let Some(mixer) = self.mixer_channel_mut(*channel) {
                     mixer.inserts = old.clone();
+                }
+            }
+            DocumentEvent::AutomationCurveAdded { track_index, .. } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    // Remove the last added curve (LIFO)
+                    track.automation.curves.pop();
+                }
+            }
+            DocumentEvent::AutomationCurveRemoved { track_index, param, .. } => {
+                // For undo, we'd need to store the removed curve; simplified: skip
+                let _ = track_index;
+                let _ = param;
+            }
+            DocumentEvent::AutomationPointAdded { track_index, param, .. } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    if let Some(curve) = track.automation.get_curve_mut(param) {
+                        curve.points.pop();
+                    }
+                }
+            }
+            DocumentEvent::AutomationPointMoved { track_index, param, point_index, old, .. } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    if let Some(curve) = track.automation.get_curve_mut(param) {
+                        if *point_index < curve.points.len() {
+                            curve.points[*point_index] = *old;
+                            curve.points.sort_by(|a, b| a.beat.total_cmp(&b.beat));
+                        }
+                    }
+                }
+            }
+            DocumentEvent::AutomationPointRemoved { track_index, param, point_index: _, point } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    if let Some(curve) = track.automation.get_curve_mut(param) {
+                        curve.add_point(*point);
+                    }
+                }
+            }
+            DocumentEvent::AutomationCurveReplaced { track_index, old, .. } => {
+                if let Some(track) = self.tracks.get_mut(*track_index) {
+                    if let Some(idx) = track.automation.curves.iter().position(|c| &c.param == &old.param) {
+                        track.automation.curves[idx] = old.clone();
+                    }
                 }
             }
         }

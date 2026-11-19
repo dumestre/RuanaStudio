@@ -308,6 +308,15 @@ pub fn apply_change(
         DocumentEvent::MixerInsertsChanged { .. } => {
             // O modelo visual dos inserts é reprojetado pelo estado do mixer.
         }
+        DocumentEvent::AutomationCurveAdded { .. } |
+        DocumentEvent::AutomationCurveRemoved { .. } |
+        DocumentEvent::AutomationPointAdded { .. } |
+        DocumentEvent::AutomationPointMoved { .. } |
+        DocumentEvent::AutomationPointRemoved { .. } |
+        DocumentEvent::AutomationCurveReplaced { .. } => {
+            // Automação é renderizada pela timeline wgpu.
+            // A timeline engine observa automation_write_back/automation_commit.
+        }
     }
 }
 

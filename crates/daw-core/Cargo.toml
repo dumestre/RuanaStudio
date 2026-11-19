@@ -5,3 +5,4 @@ edition.workspace = true
 
 [dependencies]
 daw-midi = { path = "../daw-midi" }
+serde = { version = "1.0", features = ["derive"] }

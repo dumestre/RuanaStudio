@@ -1,5 +1,6 @@
 //! Tipos de trilha da DAW.
 
+use crate::automation::AutomationLanes;
 use crate::mixer::MixerChannel;
 
 /// Tipo de uma trilha.
@@ -51,6 +52,8 @@ pub struct Track {
     pub color: u8,
     /// Parâmetros do canal no mixer.
     pub mixer: MixerChannel,
+    /// Lanes de automação para esta trilha.
+    pub automation: AutomationLanes,
 }
 
 impl Track {
@@ -62,6 +65,7 @@ impl Track {
             kind,
             color: ((id % 19) + 1) as u8,
             mixer: MixerChannel::default(),
+            automation: AutomationLanes::new(),
         }
     }
 

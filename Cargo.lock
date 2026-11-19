@@ -1080,6 +1080,7 @@ name = "daw-core"
 version = "0.6.0"
 dependencies = [
  "daw-midi",
+ "serde",
 ]
 
 [[package]]
