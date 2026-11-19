@@ -166,6 +166,19 @@ impl EngineBridge {
                 project.borrow_mut().set_marker_map(map.clone());
             }));
         }
+        // Automation Lanes
+        {
+            let project = project.clone();
+            engine.automation_write_back = Some(Box::new(move |track_index: usize, curve: &daw_core::automation::AutomationCurve| {
+                project.borrow_mut().set_automation_curve(track_index, curve);
+            }));
+        }
+        {
+            let project = project.clone();
+            engine.automation_commit = Some(Box::new(move |track_index: usize, curve: &daw_core::automation::AutomationCurve| {
+                project.borrow_mut().set_automation_curve(track_index, curve);
+            }));
+        }
         let mirrored_clip_ids = Rc::new(RefCell::new(Vec::<u64>::new()));
         // Clips → write-back: toda edição estrutural na engine (mover, deletar,
         // colar, duplicar, desenhar, fatiar) entrega a lista completa de clips.

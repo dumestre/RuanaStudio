@@ -1599,6 +1599,44 @@ impl Project {
         true
     }
 
+    /// Substitui uma curva de automação de uma track (usado para write-back/commit do wgpu).
+    /// Retorna `false` se a track não existe ou a curva não mudou.
+    pub fn set_automation_curve(
+        &mut self,
+        track_index: usize,
+        curve: &AutomationCurve,
+    ) -> bool {
+        if track_index >= self.tracks.len() {
+            return false;
+        }
+        let track = &mut self.tracks[track_index];
+        if let Some(idx) = track.automation.curves.iter().position(|c| &c.param == &curve.param) {
+            if &track.automation.curves[idx] == curve {
+                return false;
+            }
+            let old = track.automation.curves[idx].clone();
+            track.automation.curves[idx] = curve.clone();
+            let event = DocumentEvent::AutomationCurveReplaced {
+                track_index,
+                old,
+                new: curve.clone(),
+            };
+            self.emit(&event, ChangeKind::Apply);
+            self.history.record(event);
+            true
+        } else {
+            // Curva não existe, adiciona
+            track.automation.add_curve(curve.clone());
+            let event = DocumentEvent::AutomationCurveAdded {
+                track_index,
+                curve: curve.clone(),
+            };
+            self.emit(&event, ChangeKind::Apply);
+            self.history.record(event);
+            true
+        }
+    }
+
     /// Altera um parâmetro do mixer.
     /// `channel`: 0..tracks.len() = trilhas, tracks.len() = master.
     /// Retorna `false` se o canal não existe.
