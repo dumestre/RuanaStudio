@@ -704,7 +704,7 @@ impl App {
         if let Some(preview) = &self.drop_preview {
             let row_height = 64.0 * self.zoom_y;
             let x = preview.beat * self.px_per_beat - self.scroll_x;
-            let y = self.ruler_px + preview.track as f32 * row_height - self.scroll_y;
+            let y = self.content_top() + preview.track as f32 * row_height - self.scroll_y;
             let w = if preview.len_beats > 0.0 { preview.len_beats * self.px_per_beat } else { 4.0 * self.px_per_beat };
             let h = row_height;
             let col = rgba(palette::ACCENT[t], 80);
@@ -919,8 +919,8 @@ impl App {
             let ex = self.beat_to_x(self.loop_end_beat);
             let lw = (ex - sx).max(0.0);
             let bw = 6.0; // grossura das bordas laterais (alças)
-            let body_top = self.ruler_px;
-        let body_h = (timeline_bottom - self.ruler_px).max(0.0);
+            let body_top = self.content_top();
+            let body_h = (timeline_bottom - body_top).max(0.0);
 
             if lw > 0.0 {
                 // Centro que desce toda a timeline — mais translúcido ainda.
@@ -972,13 +972,13 @@ impl App {
 
         // Linha de corte vertical viva (ferramenta Slice — tecla 4) na cor da
         // borda de seleção (#262626).
-        if current_tool() == Tool::Slice && self.last_cursor.1 >= self.ruler_px {
+        if current_tool() == Tool::Slice && self.last_cursor.1 >= self.content_top() {
             let cx = self.last_cursor.0;
             if cx >= 0.0 && cx <= width {
                 let col = (0x26, 0x26, 0x26);
                 instances.push(RectInstance {
-                    x: cx - 1.0, y: self.ruler_px,
-                    w: 2.0, h: (timeline_bottom - self.ruler_px).max(0.0),
+                    x: cx - 1.0, y: self.content_top(),
+                    w: 2.0, h: (timeline_bottom - self.content_top()).max(0.0),
                     color: [col.0, col.1, col.2, 180],
                     wave_offset: 0, wave_count: 0, clip_w: 0.0, clip_h: 0.0, radius: 0.0,
                 });

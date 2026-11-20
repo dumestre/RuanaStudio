@@ -644,7 +644,7 @@ pub fn install_engine_callbacks(
                     if shift {
                         engine.paste_at_beat(
                             ((px + engine.scroll_x) / engine.px_per_beat.max(0.001)).max(0.0),
-                            ((py - engine.ruler_px + engine.scroll_y) / (64.0 * engine.zoom_y.max(0.001)))
+                            ((py - engine.content_top() + engine.scroll_y) / (64.0 * engine.zoom_y.max(0.001)))
                                 .floor()
                                 .max(0.0) as usize,
                         );

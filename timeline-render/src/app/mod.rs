@@ -1351,18 +1351,38 @@ transport,
         }
     }
 
+    /// Altura (px) ocupada pela tempo track quando visível (0 quando oculta).
+    pub fn tempo_track_h(&self) -> f32 {
+        if self.show_tempo_track {
+            self.tempo_track_height
+        } else {
+            0.0
+        }
+    }
+
+    /// Y do topo da primeira track de conteúdo: abaixo da régua e da tempo
+    /// track. É a origem VERTICAL única do conteúdo — o render
+    /// (`clips::build_clip_instances`) e o hit-test (`ClipMetrics::ruler_px`)
+    /// têm de usar esta mesma base. Se divergirem, clicar num clip acerta a
+    /// track de baixo (ou o vazio) e a ferramenta Select abre um marquee por
+    /// cima dos clips.
+    pub fn content_top(&self) -> f32 {
+        self.ruler_px + self.tempo_track_h()
+    }
+
     pub fn clip_metrics(&self) -> clips::ClipMetrics {
         let view = self.input_view_size();
         let row_height = 64.0 * self.zoom_y.max(0.001);
+        let content_top = self.content_top();
         let max_visible =
-            ((view.1 - self.ruler_px) / row_height).floor().max(0.0) as usize;
+            ((view.1 - content_top) / row_height).floor().max(0.0) as usize;
         clips::ClipMetrics {
             px_per_beat: self.px_per_beat,
             wave_segments: self.wave_segments.clone(),
             row_height,
             scroll_x: self.scroll_x,
             scroll_y: self.scroll_y,
-            ruler_px: self.ruler_px,
+            ruler_px: content_top,
             theme: self.theme.clamp(0, 6) as usize,
             max_track: self
                 .clips
@@ -1382,7 +1402,7 @@ transport,
         let max_track = self.clips.iter().map(|c| c.track_index).max().unwrap_or(0);
         // Sempre mostra ao menos 1 track (uma track padrão visível).
         let content_h = (max_track as f32 + 1.0) * row_height;
-        let view_h = (height - self.ruler_px - self.time_ruler_h).max(0.0);
+        let view_h = (height - self.content_top() - self.time_ruler_h).max(0.0);
         if content_h <= view_h {
             self.scroll_y = 0.0;
         } else {

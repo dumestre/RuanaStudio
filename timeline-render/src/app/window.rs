@@ -375,7 +375,7 @@ if app.is_dragging_file {
                     // Usa shift_pressed atualizado pelo handler de teclado
                     if state == ElementState::Pressed && app.shift_pressed {
                         let pos = click_pos;
-                        if pos.1 >= app.ruler_px {
+                        if pos.1 >= app.content_top() {
                             // Converte cursor para beat e track com snap (respeita snap_enabled)
                             let (beat, track) = app.cursor_to_snapped_beat_track(pos);
                             app.paste_at_beat(beat, track);
