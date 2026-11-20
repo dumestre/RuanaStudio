@@ -243,18 +243,56 @@ pub fn build_clip_instances(
                     inter.seam_hover_idx
                         == Some(idx);
 
-                let alpha: u8 =
-                    if is_hovered {
-                        255
-                    } else {
-                        205
-                    };
-
-                let dash_w = 2.0;
-                let dash_h = 6.0;
-                let gap = 3.0;
+                // Hover: linha mais grossa, alpha máximo, e marcador triangular no topo.
+                let (dash_w, dash_h, gap, alpha, marker_h) = if is_hovered {
+                    (3.0, 8.0, 2.0, 255u8, 14.0)
+                } else {
+                    (2.0, 6.0, 3.0, 205u8, 0.0)
+                };
 
                 let mut dy = y;
+
+                // Marcador triangular no topo (apenas no hover) - indica "corte aqui"
+                if is_hovered && marker_h > 0.0 {
+                    let tri_w = dash_w * 4.0; // 12px wide
+                    // Desenha triângulo como 3 retângulos (simples)
+                    instances.push(RectInstance {
+                        x: seam_x - tri_w / 2.0,
+                        y,
+                        w: tri_w,
+                        h: 2.0,
+                        color: [seam_col.0, seam_col.1, seam_col.2, alpha],
+                        wave_offset: 0,
+                        wave_count: 0,
+                        clip_w: 0.0,
+                        clip_h: 0.0,
+                        radius: 0.0,
+                    });
+                    instances.push(RectInstance {
+                        x: seam_x - tri_w / 4.0,
+                        y: 2.0,
+                        w: tri_w / 2.0,
+                        h: 2.0,
+                        color: [seam_col.0, seam_col.1, seam_col.2, alpha],
+                        wave_offset: 0,
+                        wave_count: 0,
+                        clip_w: 0.0,
+                        clip_h: 0.0,
+                        radius: 0.0,
+                    });
+                    instances.push(RectInstance {
+                        x: seam_x - 1.0,
+                        y: 4.0,
+                        w: 2.0,
+                        h: marker_h - 4.0,
+                        color: [seam_col.0, seam_col.1, seam_col.2, alpha],
+                        wave_offset: 0,
+                        wave_count: 0,
+                        clip_w: 0.0,
+                        clip_h: 0.0,
+                        radius: 0.0,
+                    });
+                }
 
                 while dy + dash_h
                     <= y + h
@@ -263,7 +301,7 @@ pub fn build_clip_instances(
                         RectInstance {
                             x: seam_x
                                 - dash_w / 2.0,
-                            y: dy,
+                            y: dy + if is_hovered { marker_h } else { 0.0 },
                             w: dash_w,
                             h: dash_h,
                             color: [
