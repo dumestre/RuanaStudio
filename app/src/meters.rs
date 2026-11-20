@@ -344,7 +344,9 @@ impl MeterPump {
         // canal errado.
         if bank.channel_count() != channels {
             audio.set_meter_channels(channels);
-            if bank.channel_count() != channels {
+            // Se ainda não bate, mas temos 0 canais (sem device), publica
+            // zeros para não travar a UI. Com device, espera o próximo tick.
+            if bank.channel_count() != channels && bank.channel_count() > 0 {
                 return;
             }
         }
