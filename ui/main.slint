@@ -1320,12 +1320,11 @@ export component MainWindow inherits Window {
                 && beat_popup.is-open;
         }
     }
-
     // =====================================================
     // DOAÇÃO
     // =====================================================
 
-    in-out property <bool> donation-open: false;
+    in-out property <bool> donation-open: true;
 
     donation-requested() => {
         root.donation-open = true;
@@ -1337,6 +1336,7 @@ export component MainWindow inherits Window {
             root.donation-open = false;
         }
     }
+
 
 }
 
