@@ -2,18 +2,18 @@ import { Theme } from "../theme.slint";
 
 export component DonationDialog inherits Rectangle {
 
-    in-out property <bool> open: false;
+    in-out property <bool> open: true;
     callback closed();
 
     width: 100%;
     height: 100%;
     background: transparent;
 
-    // Backdrop escuro com blur simulado
+    // Backdrop com cor sólida escura (sem blur real no Slint, usamos alpha)
     Rectangle {
         width: parent.width;
         height: parent.height;
-        background: #000000.with-alpha(0.55);
+        background: #0A080F.with-alpha(0.80);
         z: 100;
 
         TouchArea {
@@ -24,130 +24,151 @@ export component DonationDialog inherits Rectangle {
         }
     }
 
-    // Card central
+    // Card principal com vidro (glassmorphism simulado)
     if root.open: Rectangle {
-        x: (parent.width - 460px) / 2;
-        y: (parent.height - 560px) / 2;
-        width: 460px;
-        height: 560px;
+        x: (parent.width - 520px) / 2;
+        y: (parent.height - 620px) / 2;
+        width: 520px;
+        height: 620px;
         z: 101;
-        border-radius: 20px;
+        border-radius: 30px;
         clip: true;
 
-        // Gradiente de fundo do card
+        // Sombra simulada com múltiplas camadas
         Rectangle {
             width: parent.width;
             height: parent.height;
-            border-radius: 20px;
-            background: #1E1B26;
+            border-radius: 30px;
+            background: #16141E.with-alpha(0.95);
             border-width: 1px;
-            border-color: Theme.accent.with-alpha(0.35);
-        }
+            border-color: Theme.accent.with-alpha(0.45);
 
-        // Cabeçalho
-        Rectangle {
-            x: 24px;
-            y: 24px;
-            width: parent.width - 48px;
-            height: 64px;
-
-            Text {
+            // Brilho interno superior
+            Rectangle {
                 x: 0px;
                 y: 0px;
-                text: "Apoie o Ruana Studio";
-                color: Theme.text-primary;
-                font-size: 20px;
-                font-weight: 700;
-            }
-
-            Text {
-                x: 0px;
-                y: 26px;
                 width: parent.width;
-                text: "Cada doação ajuda a manter o projeto livre e aberto";
-                color: Theme.text-dim;
-                font-size: 11px;
-                horizontal-alignment: center;
+                height: 2px;
+                background: Theme.accent.with-alpha(0.6);
             }
         }
 
-        // Botão fechar (X)
+        // Gradiente decorativo no canto superior direito
         Rectangle {
-            x: parent.width - 44px;
-            y: 20px;
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
-            background: Theme.surface.with-alpha(0.6);
+            x: parent.width - 120px;
+            y: parent.height - 120px;
+            width: 200px;
+            height: 200px;
+            border-radius: 100px;
+            background: Theme.accent.with-alpha(0.15);
+            z: -1;
+        }
 
-            TouchArea {
-                clicked => {
-                    root.open = false;
-                    root.closed();
+        // ============================================
+        // CABEÇALHO
+        // ============================================
+
+        Rectangle {
+            x: 32px;
+            y: 32px;
+            width: parent.width - 64px;
+            height: 120px;
+
+            // Ícone grande (coração estilizado com texto)
+            Rectangle {
+                x: 0px;
+                y: 0px;
+                width: 64px;
+                height: 64px;
+                border-radius: 20px;
+                background: Theme.accent.with-alpha(0.2);
+                border-width: 1px;
+                border-color: Theme.accent.with-alpha(0.4);
+
+                Text {
+                    width: parent.width;
+                    height: parent.height;
+                    text: "❤️";
+                    font-size: 32px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
                 }
             }
 
             Text {
-                x: 0px;
-                y: -2px;
-                width: parent.width;
-                height: parent.height;
-                text: "✕";
+                x: 78px;
+                y: 10px;
+                width: parent.width - 78px;
+                text: "Apoie o Ruana Studio";
                 color: Theme.text-primary;
-                font-size: 16px;
-                horizontal-alignment: center;
-                vertical-alignment: center;
+                font-size: 22px;
+                font-weight: 700;
+            }
+
+            Text {
+                x: 78px;
+                y: 42px;
+                width: parent.width - 78px;
+                height: 56px;
+                text: "Mantenha o projeto livre, aberto e sem anúncios.\nSua doação paga hospedagem e desenvolvimento.";
+                color: Theme.text-dim;
+                font-size: 12px;
+                wrap: word-wrap;
             }
         }
 
-        // Conteúdo: abas de doação
+        // ============================================
+        // SEÇÕES DE DOAÇÃO
+        // ============================================
+
         VerticalLayout {
-            x: 24px;
-            y: 104px;
-            width: parent.width - 48px;
+            x: 32px;
+            y: 170px;
+            width: parent.width - 64px;
             spacing: 16px;
 
             // ---------- WhatsApp ----------
             Rectangle {
                 width: parent.width;
-                height: 84px;
-                border-radius: 12px;
-                background: Theme.surface.with-alpha(0.4);
+                height: 96px;
+                border-radius: 16px;
+                background: Theme.surface.with-alpha(0.5);
                 border-width: 1px;
                 border-color: Theme.border.with-alpha(0.3);
 
                 HorizontalLayout {
-                    spacing: 12px;
-                    padding-left: 14px;
-                    padding-right: 12px;
+                    spacing: 16px;
+                    padding-left: 20px;
+                    padding-right: 16px;
                     cross-axis-alignment: CrossAxisAlignment.center;
                     height: 100%;
 
+                    // Ícone
                     Rectangle {
-                        width: 40px;
-                        height: 40px;
-                        border-radius: 10px;
+                        width: 56px;
+                        height: 56px;
+                        border-radius: 14px;
                         background: #25D366;
 
                         Text {
                             width: parent.width;
                             height: parent.height;
-                            text: "💚";
-                            color: #FFFFFF;
-                            font-size: 18px;
+                            text: "💬";
+                            font-size: 26px;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }
                     }
 
+                    // Texto
                     VerticalLayout {
                         spacing: 4px;
 
                         Text {
                             text: "WhatsApp";
                             color: Theme.text-primary;
-                            font-size: 13px;
-                            font-weight: 600;
+                            font-size: 14px;
+                            font-weight: 700;
                         }
 
                         Text {
@@ -162,28 +183,27 @@ export component DonationDialog inherits Rectangle {
                         horizontal-stretch: 1;
                     }
 
+                    // Botão
                     Rectangle {
-                        width: 88px;
-                        height: 32px;
-                        border-radius: 6px;
+                        width: 120px;
+                        height: 40px;
+                        border-radius: 10px;
                         background: #25D366.with-alpha(0.15);
+                        border-width: 1px;
+                        border-color: #25D366.with-alpha(0.5);
 
                         TouchArea {
                             width: parent.width;
                             height: parent.height;
-
-                            clicked => {
-                                // TODO: abrir link do WhatsApp
-                            }
                         }
 
                         Text {
                             width: parent.width;
                             height: parent.height;
-                            text: "Abrir WhatsApp";
+                            text: "Abrir";
                             color: #25D366;
-                            font-size: 10px;
-                            font-weight: 700;
+                            font-size: 11px;
+                            font-weight: 800;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                             z: 1;
@@ -195,44 +215,47 @@ export component DonationDialog inherits Rectangle {
             // ---------- Pix ----------
             Rectangle {
                 width: parent.width;
-                height: 84px;
-                border-radius: 12px;
-                background: Theme.surface.with-alpha(0.4);
+                height: 96px;
+                border-radius: 16px;
+                background: Theme.surface.with-alpha(0.5);
                 border-width: 1px;
                 border-color: Theme.border.with-alpha(0.3);
 
                 HorizontalLayout {
-                    spacing: 12px;
-                    padding-left: 14px;
-                    padding-right: 12px;
+                    spacing: 16px;
+                    padding-left: 20px;
+                    padding-right: 16px;
                     cross-axis-alignment: CrossAxisAlignment.center;
                     height: 100%;
 
+                    // Ícone
                     Rectangle {
-                        width: 40px;
-                        height: 40px;
-                        border-radius: 10px;
+                        width: 56px;
+                        height: 56px;
+                        border-radius: 14px;
                         background: Theme.accent.with-alpha(0.15);
+                        border-width: 1px;
+                        border-color: Theme.accent.with-alpha(0.4);
 
                         Text {
                             width: parent.width;
                             height: parent.height;
-                            text: "💰";
-                            color: Theme.accent;
-                            font-size: 18px;
+                            text: "🔑";
+                            font-size: 26px;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }
                     }
 
+                    // Texto
                     VerticalLayout {
                         spacing: 4px;
 
                         Text {
                             text: "Pix";
                             color: Theme.text-primary;
-                            font-size: 13px;
-                            font-weight: 600;
+                            font-size: 14px;
+                            font-weight: 700;
                         }
 
                         Text {
@@ -247,28 +270,27 @@ export component DonationDialog inherits Rectangle {
                         horizontal-stretch: 1;
                     }
 
+                    // Botão
                     Rectangle {
-                        width: 88px;
-                        height: 32px;
-                        border-radius: 6px;
+                        width: 120px;
+                        height: 40px;
+                        border-radius: 10px;
                         background: Theme.accent.with-alpha(0.15);
+                        border-width: 1px;
+                        border-color: Theme.accent.with-alpha(0.5);
 
                         TouchArea {
                             width: parent.width;
                             height: parent.height;
-
-                            clicked => {
-                                // TODO: copiar chave pix
-                            }
                         }
 
                         Text {
                             width: parent.width;
                             height: parent.height;
-                            text: "Copiar Chave";
+                            text: "Copiar";
                             color: Theme.accent;
-                            font-size: 10px;
-                            font-weight: 700;
+                            font-size: 11px;
+                            font-weight: 800;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                             z: 1;
@@ -280,45 +302,46 @@ export component DonationDialog inherits Rectangle {
             // ---------- PayPal ----------
             Rectangle {
                 width: parent.width;
-                height: 84px;
-                border-radius: 12px;
-                background: Theme.surface.with-alpha(0.4);
+                height: 96px;
+                border-radius: 16px;
+                background: Theme.surface.with-alpha(0.25);
                 border-width: 1px;
-                border-color: Theme.border.with-alpha(0.3);
-                opacity: 0.5;
+                border-color: Theme.border.with-alpha(0.2);
+                opacity: 0.6;
 
                 HorizontalLayout {
-                    spacing: 12px;
-                    padding-left: 14px;
-                    padding-right: 12px;
+                    spacing: 16px;
+                    padding-left: 20px;
+                    padding-right: 16px;
                     cross-axis-alignment: CrossAxisAlignment.center;
                     height: 100%;
 
+                    // Ícone
                     Rectangle {
-                        width: 40px;
-                        height: 40px;
-                        border-radius: 10px;
-                        background: Theme.text-dim.with-alpha(0.3);
+                        width: 56px;
+                        height: 56px;
+                        border-radius: 14px;
+                        background: Theme.text-dim.with-alpha(0.2);
 
                         Text {
                             width: parent.width;
                             height: parent.height;
                             text: "🅿️";
-                            color: Theme.text-dim;
-                            font-size: 16px;
+                            font-size: 26px;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }
                     }
 
+                    // Texto
                     VerticalLayout {
                         spacing: 4px;
 
                         Text {
                             text: "PayPal";
                             color: Theme.text-primary.transparentize(0.3);
-                            font-size: 13px;
-                            font-weight: 600;
+                            font-size: 14px;
+                            font-weight: 700;
                         }
 
                         Text {
@@ -333,27 +356,26 @@ export component DonationDialog inherits Rectangle {
                         horizontal-stretch: 1;
                     }
 
+                    // Botão desabilitado
                     Rectangle {
-                        width: 88px;
-                        height: 32px;
-                        border-radius: 6px;
+                        width: 120px;
+                        height: 40px;
+                        border-radius: 10px;
                         background: Theme.text-dim.with-alpha(0.1);
 
                         TouchArea {
                             width: parent.width;
                             height: parent.height;
                             enabled: false;
-
-                            clicked => {}
                         }
 
                         Text {
                             width: parent.width;
                             height: parent.height;
                             text: "Em breve";
-                            color: Theme.text-dim.transparentize(0.3);
-                            font-size: 10px;
-                            font-weight: 700;
+                            color: Theme.text-dim.transparentize(0.4);
+                            font-size: 11px;
+                            font-weight: 800;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                             z: 1;
@@ -365,36 +387,81 @@ export component DonationDialog inherits Rectangle {
             // ---------- Rodapé ----------
             Rectangle {
                 width: parent.width;
-                height: 44px;
-                border-radius: 10px;
-                background: Theme.surface.with-alpha(0.2);
+                height: 56px;
+                border-radius: 14px;
+                background: Theme.surface.with-alpha(0.3);
                 border-width: 1px;
                 border-color: Theme.border.with-alpha(0.2);
 
                 HorizontalLayout {
-                    spacing: 8px;
-                    padding-left: 14px;
-                    padding-right: 12px;
+                    spacing: 12px;
+                    padding-left: 20px;
+                    padding-right: 16px;
                     cross-axis-alignment: CrossAxisAlignment.center;
                     height: 100%;
 
                     Text {
-                        width: parent.width;
-                        height: parent.height;
-                        text: "❤️";
-                        color: Theme.accent.with-alpha(0.6);
-                        font-size: 16px;
+                        text: "✨";
+                        font-size: 20px;
                         horizontal-alignment: center;
                         vertical-alignment: center;
                     }
 
                     Text {
-                        text: "Obrigado pelo apoio!";
+                        text: "Obrigado por apoiar o Ruana Studio!";
                         color: Theme.text-dim;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 600;
                     }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    Text {
+                        text: "v0.6.0";
+                        color: Theme.accent.with-alpha(0.6);
+                        font-size: 10px;
+                        font-weight: 700;
+                    }
                 }
+            }
+        }
+
+        // ============================================
+        // BOTÃO FECHAR (canto superior direito)
+        // ============================================
+
+        Rectangle {
+            x: parent.width - 52px;
+            y: 28px;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: Theme.surface.with-alpha(0.6);
+            border-width: 1px;
+            border-color: Theme.border.with-alpha(0.3);
+
+            TouchArea {
+                width: parent.width;
+                height: parent.height;
+
+                clicked => {
+                    root.open = false;
+                    root.closed();
+                }
+            }
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: "✕";
+                color: Theme.text-dim;
+                font-size: 16px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                z: 1;
             }
         }
     }
