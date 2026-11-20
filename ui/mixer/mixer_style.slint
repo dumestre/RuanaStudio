@@ -1,0 +1,116 @@
+// ============================================================
+// VOCABULÁRIO VISUAL DO MIXER
+// ============================================================
+//
+// Fica FORA do Theme: o Theme é compartilhado com timeline /
+// sampler / piano-roll e não pode ser alterado. Aqui derivamos
+// tokens locais do mixer.
+//
+// SEM ESTADO global: a densidade (`compact`) desce pela árvore
+// como propriedade de instância. Este global tem apenas
+// constantes e funções puras.
+// ============================================================
+
+import { Theme } from "../theme.slint";
+
+export global MixerStyle {
+
+    // ========================================================
+    // SUPERFÍCIES
+    // ========================================================
+
+    out property <color> panel: Theme.surface;
+    out property <color> card: Theme.surface-high;
+    out property <color> card-hi: Theme.surface;
+    out property <color> rail: Theme.border;
+    out property <color> hairline: Theme.border;
+
+    out property <color> text: Theme.text-primary;
+    out property <color> text-mid: Theme.text-primary.transparentize(0.15);
+    out property <color> text-dim: Theme.text-dim;
+    out property <color> text-faint: Theme.text-dim.transparentize(0.35);
+
+    out property <color> accent: Theme.accent;
+    out property <color> accent-hi: Theme.accent-hover;
+
+    // ========================================================
+    // BREAKPOINTS (largura da janela)
+    //
+    // notebook  = >= 1280px (min-width da janela)
+    // compact   = < 1280px (painel flutuante estreito / bottom baixo)
+    // ========================================================
+
+    public pure function is-notebook(w: length) -> bool {
+        return w >= 1280px;
+    }
+
+    // ========================================================
+    // DENSIDADE
+    //
+    // Funções, não propriedades: `compact` é por instância.
+    // ========================================================
+
+    public pure function pad(c: bool) -> length {
+        return c ? 4px : 8px;
+    }
+
+    public pure function gap(c: bool) -> length {
+        return c ? 3px : 6px;
+    }
+
+    public pure function header-h(c: bool) -> length {
+        return c ? 24px : 30px;
+    }
+
+    public pure function insert-slot-step(c: bool) -> length {
+        return c ? 18px : 22px;
+    }
+
+    public pure function channel-w(c: bool) -> length {
+        return c ? 80px : 110px;
+    }
+
+    public pure function strip-h(c: bool) -> length {
+        return c ? 18px : 22px;
+    }
+
+    public pure function btn-h(c: bool) -> length {
+        return c ? 16px : 18px;
+    }
+
+    public pure function btn-w(c: bool) -> length {
+        return c ? 16px : 18px;
+    }
+
+    public pure function insert-h(c: bool) -> length {
+        return c ? 20px : 22px;
+    }
+
+    public pure function fader-min-h(c: bool) -> length {
+        return c ? 140px : 190px;
+    }
+
+    public pure function fader-pref-h(c: bool) -> length {
+        return c ? 220px : 280px;
+    }
+
+    public pure function meter-min-h(c: bool) -> length {
+        return c ? 120px : 160px;
+    }
+
+    public pure function db-box-w(c: bool) -> length {
+        return c ? 56px : 70px;
+    }
+
+    public pure function name-size(c: bool) -> length {
+        return c ? 9px : 10px;
+    }
+
+    public pure function label-size(c: bool) -> length {
+        return c ? 8px : 9px;
+    }
+
+    public pure function value-size(c: bool) -> length {
+        return c ? 8px : 9px;
+    }
+}

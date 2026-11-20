@@ -1,0 +1,107 @@
+// ============================================================
+// TECLADO VISUAL DO SAMPLER
+// ============================================================
+//
+// Teclas brancas e pretas em uma oitava (C3..C4). O usuário clica
+// numa tecla e o componente publica `note-pressed(midi)` — o host
+// (Rust ou sampler.slint) decide o que fazer com a nota.
+//
+// Responsivo: `compact` reduz a altura e o tamanho das teclas.
+// ============================================================
+
+import { Theme } from "../theme.slint";
+
+export component SamplerKeyboard inherits Rectangle {
+
+    // Nota MIDI pressionada (publicada ao clicar numa tecla).
+    callback note-pressed(int);
+    // Nota solta (para release).
+    callback note-released(int);
+
+    in property <bool> compact: false;
+    // Nota raiz destacada no teclado (0..1, posição no teclado).
+    in property <float> root-key: 0.5;
+
+    // Altura do teclado.
+    property <length> key-h: root.compact ? 40px : 60px;
+    // Largura de cada tecla branca.
+    property <length> white-w: root.compact ? 14px : 20px;
+
+    // Oitava central: C3=48 .. C4=60.
+    private property <[int]> white-notes: [48, 50, 52, 53, 55, 57, 59];
+    // Teclas pretas entre as brancas (C#3, D#3, F#3, G#3, A#3).
+    private property <[int]> black-notes: [49, 51, 54, 56, 58];
+    // Índices das brancas que têm preto à direita.
+    private property <[int]> black-after: [0, 1, 3, 4, 5];
+
+    height: root.key-h;
+
+    // ---------------------------------------------------------
+    // TECLAS BRANCAS
+    // ---------------------------------------------------------
+
+    for w[i] in root.white-notes: Rectangle {
+        x: i * root.white-w;
+        y: 0;
+        width: root.white-w;
+        height: root.key-h;
+
+        background: root.pressed == w
+            ? Theme.accent
+            : #FFFFFF;
+        border-width: 1px;
+        border-color: Theme.border;
+        border-radius: i == root.white-notes.length - 1 ? 3px : 0px;
+
+        // Marca a tecla raiz.
+        if i == Math.round(root.root-key * (root.white-notes.length - 1)): Rectangle {
+            y: parent.height - 2px;
+            height: 2px;
+            width: parent.width;
+            background: Theme.accent;
+        }
+
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.note-pressed(w);
+            }
+            states [
+                pressed when pressed: {
+                    opacity: 0.6;
+                }
+            ]
+        }
+    }
+
+    // ---------------------------------------------------------
+    // TECLAS PRETAS (sobre as brancas)
+    // ---------------------------------------------------------
+
+    for b[i] in root.black-notes: Rectangle {
+        x: (root.black-after[i] + 1) * root.white-w - root.white-w * 0.55;
+        y: 0;
+        width: root.white-w * 0.7;
+        height: root.key-h * 0.6;
+
+        background: root.pressed == b
+            ? Theme.accent.brighter(0.2)
+            : #1A1A1A;
+        border-radius: 2px;
+
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.note-pressed(b);
+            }
+            states [
+                pressed when pressed: {
+                    opacity: 0.6;
+                }
+            ]
+        }
+    }
+
+    // Estado da tecla pressionada (para realce visual).
+    private property <int> pressed: -1;
+}

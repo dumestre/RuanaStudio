@@ -1,4 +1,5 @@
 import { Theme } from "../theme.slint";
+import { MixerStyle } from "mixer_style.slint";
 import { Button } from "../components/button.slint";
 
 export component MixerHeader inherits Rectangle {
@@ -13,54 +14,57 @@ export component MixerHeader inherits Rectangle {
     /// Largura das faixas, editada pelos botões de estreitar/alargar.
     in-out property <length> channel-width: 100px;
 
-    height: 30px;
+    /// Densidade: compact em telas estreitas, wide em notebook+.
+    in property <bool> compact: false;
+
+    height: MixerStyle.header-h(root.compact);
     background: Theme.surface;
 
     HorizontalLayout {
-        padding-left: 8px;
-        padding-right: 6px;
-        spacing: 5px;
+        padding-left: MixerStyle.pad(root.compact);
+        padding-right: MixerStyle.pad(root.compact);
+        spacing: MixerStyle.gap(root.compact);
         cross-axis-alignment: CrossAxisAlignment.center;
         height: 100%;
 
-        Text {
+        if !root.compact: Text {
             text: "Mixer";
             color: Theme.text-primary;
-            font-size: 10px;
+            font-size: MixerStyle.label-size(root.compact);
             font-weight: 600;
         }
 
-        Rectangle { width: 1px; height: 16px; background: Theme.border; }
+        if !root.compact: Rectangle { width: 1px; height: 16px; background: Theme.border; }
 
-        Button {
+        if !root.compact: Button {
             text: "Copiar slots";
-            height: 21px;
-            padding-x: 6px;
+            height: MixerStyle.btn-h(root.compact);
+            padding-x: MixerStyle.pad(root.compact);
             corner-radius: 3px;
             resting-bg: Theme.surface-high;
             clicked => { root.copy-slots(); }
         }
-        Button {
+        if !root.compact: Button {
             text: "Colar";
-            height: 21px;
-            padding-x: 6px;
+            height: MixerStyle.btn-h(root.compact);
+            padding-x: MixerStyle.pad(root.compact);
             corner-radius: 3px;
             resting-bg: Theme.surface-high;
             clicked => { root.paste-slots(); }
         }
-        Button {
-            width: 23px;
-            height: 21px;
+        if !root.compact: Button {
+            width: MixerStyle.btn-w(root.compact);
+            height: MixerStyle.btn-h(root.compact);
             icon: @image-url("../icons/undo.svg");
-            icon-size: 13px;
+            icon-size: 11px;
             borderless: true;
             clicked => { root.undo(); }
         }
-        Button {
-            width: 23px;
-            height: 21px;
+        if !root.compact: Button {
+            width: MixerStyle.btn-w(root.compact);
+            height: MixerStyle.btn-h(root.compact);
             icon: @image-url("../icons/redo.svg");
-            icon-size: 13px;
+            icon-size: 11px;
             borderless: true;
             clicked => { root.redo(); }
         }
@@ -69,8 +73,8 @@ export component MixerHeader inherits Rectangle {
 
         // Largura das faixas: 14px por clique, dentro de 72..148.
         Button {
-            width: 20px;
-            height: 21px;
+            width: MixerStyle.btn-w(root.compact);
+            height: MixerStyle.btn-h(root.compact);
             text: "−";
             padding-x: 0px;
             corner-radius: 3px;
@@ -81,8 +85,8 @@ export component MixerHeader inherits Rectangle {
             }
         }
         Button {
-            width: 20px;
-            height: 21px;
+            width: MixerStyle.btn-w(root.compact);
+            height: MixerStyle.btn-h(root.compact);
             text: "+";
             padding-x: 0px;
             corner-radius: 3px;
@@ -94,10 +98,10 @@ export component MixerHeader inherits Rectangle {
         }
 
         Button {
-            width: 22px;
-            height: 20px;
+            width: MixerStyle.btn-w(root.compact);
+            height: MixerStyle.btn-h(root.compact);
             icon: @image-url("../icons/expand_diag.svg");
-            icon-size: 12px;
+            icon-size: MixerStyle.label-size(root.compact);
             borderless: true;
             icon-color: Theme.text-dim;
             transform-rotation: root.floating ? 180deg : 0deg;

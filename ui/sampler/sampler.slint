@@ -11,6 +11,7 @@ import { SamplerAmp } from "sampler_amp.slint";
 import { SamplerModulation } from "sampler_modulation.slint";
 import { SamplerKeymap } from "sampler_keymap.slint";
 import { SamplerReadout } from "sampler_widgets.slint";
+import { SamplerKeyboard } from "sampler_keyboard.slint";
 
 // ============================================================
 // SAMPLER
@@ -127,6 +128,11 @@ export component Sampler inherits Rectangle {
 
     in-out property <int> active-tab: 0;
     callback tab-changed(int);
+    callback note-pressed(int);
+
+    // Densidade: compact em telas estreitas (painel flutuante / bottom
+    // abaixo de 1280px), wide em notebook e acima.
+    in-out property <bool> compact: false;
 
     private property <[string]> tab-labels: ["MAIN", "TUNE", "ENV", "MAP", "MOD"];
 
@@ -143,6 +149,10 @@ export component Sampler inherits Rectangle {
     private property <string> sample-line: root.sample-loaded
         ? (root.sample-name + "  ·  " + root.sample-duration)
         : "No Sample";
+
+    changed width => {
+        root.compact = root.width < 1280px;
+    }
 
     background: Theme.base;
 
@@ -162,7 +172,7 @@ export component Sampler inherits Rectangle {
             tabs: root.tab-labels;
             current: root.active-tab;
             active: root.tab-active;
-            compact: true;
+            compact: root.compact;
 
             picked(index) => {
                 root.active-tab = index;
@@ -175,7 +185,7 @@ export component Sampler inherits Rectangle {
             SamplerReadout {
                 label: "SAMPLE";
                 value: root.sample-line;
-                compact: true;
+                compact: root.compact;
                 value-color: root.sample-loaded
                     ? SamplerStyle.text
                     : SamplerStyle.text-faint;
@@ -192,7 +202,7 @@ export component Sampler inherits Rectangle {
 
             SamplerHeader {
                 height: SamplerStyle.header-h(true);
-                compact: true;
+                compact: root.compact;
 
                 sample-name: root.sample-name;
                 sample-loaded: root.sample-loaded;
@@ -214,7 +224,7 @@ export component Sampler inherits Rectangle {
 
             SamplerWaveform {
                 vertical-stretch: 1;
-                compact: true;
+                compact: root.compact;
 
                 sample-loaded: root.sample-loaded;
                 playing: root.playing;
@@ -224,7 +234,7 @@ export component Sampler inherits Rectangle {
             }
 
             SamplerTransport {
-                compact: true;
+                compact: root.compact;
 
                 playing: root.playing;
                 loop-enabled: root.loop-enabled;
@@ -242,7 +252,7 @@ export component Sampler inherits Rectangle {
             vertical-stretch: 1;
 
             SamplerPitch {
-                compact: true;
+                compact: root.compact;
                 horizontal-stretch: 1;
 
                 tune: root.tune;
@@ -273,7 +283,7 @@ export component Sampler inherits Rectangle {
             }
 
             SamplerFilter {
-                compact: true;
+                compact: root.compact;
                 horizontal-stretch: 1;
 
                 cutoff: root.cutoff;
@@ -314,7 +324,7 @@ export component Sampler inherits Rectangle {
             vertical-stretch: 1;
 
             SamplerEnvelope {
-                compact: true;
+                compact: root.compact;
                 horizontal-stretch: 1;
 
                 attack: root.attack;
@@ -324,7 +334,7 @@ export component Sampler inherits Rectangle {
             }
 
             SamplerAmp {
-                compact: true;
+                compact: root.compact;
                 horizontal-stretch: 1;
 
                 volume: root.volume;
@@ -366,7 +376,7 @@ export component Sampler inherits Rectangle {
         // ========================================================
 
         if root.active-tab == 3: SamplerKeymap {
-            compact: true;
+            compact: root.compact;
             vertical-stretch: 1;
 
             root-key: root.root-key;
@@ -397,7 +407,7 @@ export component Sampler inherits Rectangle {
         // ========================================================
 
         if root.active-tab == 4: SamplerModulation {
-            compact: true;
+            compact: root.compact;
             vertical-stretch: 1;
 
             rate: root.lfo-rate;
@@ -431,6 +441,21 @@ export component Sampler inherits Rectangle {
 
             sync-changed(value) => {
                 root.lfo-sync = value;
+            }
+        }
+
+        // ========================================================
+        // TECLADO — visível em todas as abas
+        // ========================================================
+
+        SamplerKeyboard {
+            height: root.compact ? 40px : 60px;
+            vertical-stretch: 0;
+            compact: root.compact;
+            root-key: root.root-key;
+
+            note-pressed(midi) => {
+                root.note-pressed(midi);
             }
         }
     }

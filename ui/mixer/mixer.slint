@@ -1,4 +1,5 @@
 import { Theme } from "../theme.slint";
+import { MixerStyle } from "mixer_style.slint";
 import { MixerHeader } from "mixer_header.slint";
 import { MixerChannel } from "mixer_channel.slint";
 import { ClipPalette } from "../clip_palette.slint";
@@ -42,7 +43,11 @@ export component Mixer inherits Rectangle {
 
     // Largura da faixa (narrow/wide). A master acompanha; o scroll
     // horizontal do Flickable se ajusta sozinho via `content-width`.
-    in-out property <length> channel-width: 100px;
+    in-out property <length> channel-width: 110px;
+
+    // Densidade: compact em telas estreitas (painel flutuante /
+    // bottom baixo), wide em notebook e acima.
+    in-out property <bool> compact: false;
 
     // Leitura com guarda. O `MeterPump` publica o comprimento do
     // modelo, mas a reordenação de canais (mover uma faixa) acontece
@@ -71,8 +76,8 @@ export component Mixer inherits Rectangle {
 
     // Altura natural do conteúdo (usada pelo Rust para dimensionar a
     // janela flutuante): cabeçalho + canal com fader default + inserts.
-    property <length> channel-fixed-height: 139px;
-    property <length> insert-slot-step: 22px;
+    property <length> channel-fixed-height: 190px;
+    property <length> insert-slot-step: MixerStyle.insert-slot-step(root.compact);
     property <length> content-natural-height:
         root.channel-fixed-height
         + 90px
@@ -80,20 +85,24 @@ export component Mixer inherits Rectangle {
         + root.max-inserts * root.insert-slot-step
         + 18px;
     in-out property <length> natural-height:
-        (root.show-header ? 30px : 0px) + root.content-natural-height;
+        (root.show-header ? MixerStyle.header-h(root.compact) : 0px)
+        + root.content-natural-height;
 
 
     border-radius: 8px;
 
-    VerticalLayout {
-   
-        cross-axis-alignment: CrossAxisAlignment.center;
+    changed width => {
+        root.compact = !MixerStyle.is-notebook(root.width);
+    }
 
-        
+    VerticalLayout {
+
+        cross-axis-alignment: CrossAxisAlignment.center;
 
         if (root.show-header): MixerHeader {
             floating <=> root.floating;
             selected-channel: root.selected-channel;
+            compact: root.compact;
             float-toggle => { root.float-toggle(); }
             copy-slots => { root.copy-inserts(root.selected-channel); }
             paste-slots => { root.paste-inserts(root.selected-channel); }
@@ -105,7 +114,7 @@ export component Mixer inherits Rectangle {
         HorizontalLayout {
             width: 100%;
             vertical-stretch: 1;
-       
+
             cross-axis-alignment: CrossAxisAlignment.stretch;
 
             flickable := Flickable {
@@ -113,17 +122,16 @@ export component Mixer inherits Rectangle {
                 vertical-stretch: 1;
                 content-width: max((root.mutes.length - 1) * root.channel-width, self.width);
                 content-height: self.height;
-             
 
                 HorizontalLayout {
                     height: 100%;
-                 
+
                     cross-axis-alignment: CrossAxisAlignment.stretch;
 
                     for m[i] in root.mutes: MixerChannel {
                         visible: i < root.mutes.length - 1;
                         height: 100%;
-                        strip-width: root.channel-width;
+                        strip-width: root.compact ? MixerStyle.channel-w(true) : root.channel-width;
                         name: root.names[i];
                         channel-color: i < root.track-colors.length && root.track-colors[i] != 0
                             ? ClipPalette.colors[Math.mod(root.track-colors[i], ClipPalette.colors.length)]
@@ -144,6 +152,7 @@ export component Mixer inherits Rectangle {
                         available-height: flickable.height;
                         show-inserts: root.show-inserts;
                         show-pan: root.show-pan;
+                        compact: root.compact;
 
                         insert-count: root.insert-counts[i];
                         insert-names: root.insert-names;
@@ -177,14 +186,15 @@ export component Mixer inherits Rectangle {
             }
 
             if root.mutes.length > 0 : MixerChannel {
-                width: root.channel-width;
+                width: root.compact ? MixerStyle.channel-w(true) : root.channel-width;
                 height: 100%;
                 name: "Master";
                 channel-color: Theme.text-primary;
                 is-master: true;
+                compact: root.compact;
                 // Antes a master não recebia altura: ficava com o default de
                 // 200px e o auto-colapso das seções não enxergava o painel.
-                available-height: root.height - (root.show-header ? 30px : 0px);
+                available-height: root.height - (root.show-header ? MixerStyle.header-h(root.compact) : 0px);
                 show-inserts: root.show-inserts;
                 show-pan: root.show-pan;
                 channel-index: root.mutes.length - 1;
