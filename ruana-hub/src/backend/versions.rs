@@ -10,6 +10,7 @@ use zip::ZipArchive;
 const R2_PUBLIC_HOST: &str = "builds.daime.space";
 const R2_CHANNEL_PREFIX: &str = "/ruana/stable/";
 pub const CHANNEL_MANIFEST_URL: &str = "https://builds.daime.space/ruana/stable/channel.json";
+const GITHUB_API_URL: &str = "https://api.github.com/repos/DJDUM/RuanaStudio/releases";
 const MAX_DOWNLOAD_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 const MAX_UNPACKED_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 const MAX_ARCHIVE_ENTRIES: usize = 20_000;
@@ -21,6 +22,12 @@ const APP_EXECUTABLE: &str = if cfg!(windows) {
     "ruana-studio"
 };
 
+const GITHUB_ASSET_NAME: &str = if cfg!(windows) {
+    "ruana-studio-windows-x64.zip"
+} else {
+    "ruana-studio-linux-x64.zip"
+};
+
 #[derive(Debug, Deserialize)]
 pub struct ChannelManifest {
     pub version: String,
@@ -28,6 +35,40 @@ pub struct ChannelManifest {
     pub sha256: String,
     #[serde(default)]
     pub release_notes: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GitHubRelease {
+    pub tag_name: String,
+    pub name: String,
+    pub body: String,
+    pub draft: bool,
+    pub prerelease: bool,
+    pub assets: Vec<GitHubAsset>,
+    pub published_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GitHubAsset {
+    pub name: String,
+    pub browser_download_url: String,
+    pub size: u64,
+}
+
+#[derive(Debug, Clone)]
+pub enum UpdateSource {
+    Channel,
+    GitHub,
+}
+
+#[derive(Debug)]
+pub struct AvailableUpdate {
+    pub source: UpdateSource,
+    pub version: String,
+    pub download_url: String,
+    pub sha256: Option<String>,
+    pub release_notes: String,
+    pub asset_size: u64,
 }
 
 pub fn list(root: &Path) -> io::Result<Vec<PathBuf>> {
@@ -75,6 +116,71 @@ pub fn check_channel() -> io::Result<ChannelManifest> {
         serde_json::from_slice(&manifest_bytes).map_err(network_error)?;
     validate_manifest(&manifest)?;
     Ok(manifest)
+}
+
+pub fn check_github_releases() -> io::Result<Vec<AvailableUpdate>> {
+    let client = http_client()?;
+    let response = client
+        .get(GITHUB_API_URL)
+        .header("User-Agent", "ruana-hub")
+        .send()
+        .and_then(reqwest::blocking::Response::error_for_status)
+        .map_err(network_error)?;
+    let releases: Vec<GitHubRelease> = response.json().map_err(network_error)?;
+    
+    let mut updates = Vec::new();
+    for release in releases {
+        if release.draft {
+            continue;
+        }
+        
+        let asset = release.assets.iter().find(|a| a.name == GITHUB_ASSET_NAME);
+        let Some(asset) = asset else {
+            continue;
+        };
+        
+        let version = release.tag_name.trim_start_matches('v').to_string();
+        updates.push(AvailableUpdate {
+            source: UpdateSource::GitHub,
+            version,
+            download_url: asset.browser_download_url.clone(),
+            sha256: None,
+            release_notes: release.body,
+            asset_size: asset.size,
+        });
+    }
+    
+    use std::cmp::Ordering;
+use version_compare::Cmp;
+
+    updates.sort_by(|a, b| {
+        version_compare::compare(&b.version, &a.version)
+            .map(|c| match c {
+                Cmp::Lt | Cmp::Le => Ordering::Less,
+                Cmp::Eq | Cmp::Ne => Ordering::Equal,
+                Cmp::Gt | Cmp::Ge => Ordering::Greater,
+            })
+            .unwrap_or(Ordering::Equal)
+    });
+    
+    Ok(updates)
+}
+
+pub fn check_latest_github_release() -> io::Result<Option<AvailableUpdate>> {
+    let updates = check_github_releases()?;
+    Ok(updates.into_iter().next())
+}
+
+pub fn install_latest_github(root: &Path) -> io::Result<PathBuf> {
+    let update = check_latest_github_release()?
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "nenhum release do GitHub encontrado"))?;
+    install_from_update(root, &update, None)
+}
+
+pub fn update_latest_github(root: &Path, installed: &Path) -> io::Result<PathBuf> {
+    let update = check_latest_github_release()?
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "nenhum release do GitHub encontrado"))?;
+    install_from_update(root, &update, Some(installed))
 }
 
 pub fn install_latest(root: &Path) -> io::Result<PathBuf> {
@@ -166,6 +272,149 @@ fn install_manifest(
             Ok(destination)
         }
     }
+}
+
+fn install_from_update(
+    root: &Path,
+    update: &AvailableUpdate,
+    installed: Option<&Path>,
+) -> io::Result<PathBuf> {
+    std::fs::create_dir_all(root)?;
+    let root = root.canonicalize()?;
+    let destination = root.join(format!("Ruana Studio {}", update.version));
+
+    let current = match installed {
+        Some(path) => {
+            let path = path.canonicalize()?;
+            if path.parent() != Some(root.as_path()) || !path.join(APP_EXECUTABLE).is_file() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "a versão selecionada não pertence à pasta gerenciada pelo Hub",
+                ));
+            }
+            if destination.exists() && destination != path {
+                return Err(io::Error::new(
+                    io::ErrorKind::AlreadyExists,
+                    format!("a versão {} já está instalada", update.version),
+                ));
+            }
+            Some(path)
+        }
+        None if destination.exists() => {
+            return Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                format!(
+                    "a versão {} já está instalada; atualize uma versão existente",
+                    update.version
+                ),
+            ));
+        }
+        None => None,
+    };
+
+    let archive_path = root.join(format!(".ruana-download-{}.zip", std::process::id()));
+    let archive_guard = TempFile::create(archive_path)?;
+    download_archive_github(
+        &update.download_url,
+        update.sha256.as_deref(),
+        archive_guard.path(),
+        update.asset_size,
+    )?;
+
+    let staging = unique_staging_path(&root, "install")?;
+    if let Err(error) = extract_archive(archive_guard.path(), &staging) {
+        return Err(cleanup_staging_error(error, &staging));
+    }
+    if let Err(error) = validate_build_folder(&staging) {
+        return Err(cleanup_staging_error(error, &staging));
+    }
+    if let Err(error) = write_version_metadata_github(&staging, update) {
+        return Err(cleanup_staging_error(error, &staging));
+    }
+
+    match current {
+        Some(current) => replace_version(&root, &current, &destination, &staging),
+        None => {
+            if let Err(error) = std::fs::rename(&staging, &destination) {
+                return Err(cleanup_staging_error(error, &staging));
+            }
+            Ok(destination)
+        }
+    }
+}
+
+fn download_archive_github(
+    url: &str,
+    expected_sha256: Option<&str>,
+    path: &Path,
+    expected_size: u64,
+) -> io::Result<()> {
+    let mut response = http_client()?
+        .get(url)
+        .send()
+        .and_then(reqwest::blocking::Response::error_for_status)
+        .map_err(network_error)?;
+    
+    if response
+        .content_length()
+        .is_some_and(|length| length > MAX_DOWNLOAD_BYTES)
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "a build excede o tamanho máximo permitido para download",
+        ));
+    }
+
+    if expected_size > MAX_DOWNLOAD_BYTES {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "a build excede o tamanho máximo permitido para download",
+        ));
+    }
+
+    let mut file = File::create(path)?;
+    let mut hasher = Sha256::new();
+    let mut total = 0_u64;
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = response.read(&mut buffer).map_err(network_error)?;
+        if read == 0 {
+            break;
+        }
+        total = total.saturating_add(read as u64);
+        if total > MAX_DOWNLOAD_BYTES {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "a build excede o tamanho máximo permitido para download",
+            ));
+        }
+        hasher.update(&buffer[..read]);
+        std::io::Write::write_all(&mut file, &buffer[..read])?;
+    }
+    std::io::Write::flush(&mut file)?;
+
+    if let Some(expected_sha256) = expected_sha256 {
+        let actual_sha256 = format!("{:x}", hasher.finalize());
+        if !actual_sha256.eq_ignore_ascii_case(expected_sha256) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "o SHA-256 da build não corresponde ao manifesto; instalação cancelada",
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn write_version_metadata_github(folder: &Path, update: &AvailableUpdate) -> io::Result<()> {
+    let metadata = serde_json::json!({
+        "version": update.version,
+        "release_notes": update.release_notes,
+    });
+    std::fs::write(
+        folder.join("ruana-version.json"),
+        serde_json::to_vec_pretty(&metadata).map_err(network_error)?,
+    )
 }
 
 fn replace_version(

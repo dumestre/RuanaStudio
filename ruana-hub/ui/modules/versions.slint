@@ -4,11 +4,19 @@ import { ActionButton } from "../components/action_button.slint";
 export struct HubVersion {
     name: string,
     path: string,
+    source: string,
+}
+
+export struct GitHubReleaseInfo {
+    version: string,
+    release_notes: string,
+    asset_size: string,
 }
 
 component VersionRow inherits Rectangle {
     in property <string> name: "";
     in property <string> path: "";
+    in property <string> source: "";
     in property <bool> busy: false;
     callback launch-requested(string);
     callback update-requested(string);
@@ -37,6 +45,12 @@ component VersionRow inherits Rectangle {
             font-size: 10px;
             overflow: elide;
         }
+        Text {
+            text: root.source;
+            color: HubTheme.accent;
+            font-size: 9px;
+            font-weight: 600;
+        }
     }
 
     ActionButton {
@@ -59,14 +73,78 @@ component VersionRow inherits Rectangle {
     }
 }
 
+component GitHubReleaseRow inherits Rectangle {
+    in property <string> version: "";
+    in property <string> release_notes: "";
+    in property <string> asset_size: "";
+    in property <bool> busy: false;
+    callback install-requested();
+    callback update-requested();
+
+    height: 96px;
+    background: HubTheme.surface;
+    border-width: 1px;
+    border-color: HubTheme.border;
+    border-radius: 6px;
+
+    VerticalLayout {
+        x: 14px;
+        y: 9px;
+        width: parent.width - 250px;
+        spacing: 4px;
+        Text {
+            text: "GitHub Release: " + root.version;
+            color: HubTheme.text-primary;
+            font-size: 13px;
+            font-weight: 600;
+            overflow: elide;
+        }
+        Text {
+            text: "Tamanho: " + root.asset_size;
+            color: HubTheme.text-dim;
+            font-size: 10px;
+            overflow: elide;
+        }
+        Text {
+            text: root.release_notes;
+            color: HubTheme.text-dim;
+            font-size: 9px;
+            wrap: word-wrap;
+            overflow: elide;
+        }
+    }
+
+    ActionButton {
+        x: parent.width - self.width - 12px;
+        y: (parent.height - self.height) / 2 - 28px;
+        width: 120px;
+        label: root.busy ? "Baixando..." : "Instalar";
+        primary: true;
+        enabled: !root.busy;
+        clicked => { root.install-requested(); }
+    }
+
+    ActionButton {
+        x: parent.width - self.width - 12px;
+        y: (parent.height - self.height) / 2 + 4px;
+        width: 120px;
+        label: "Atualizar";
+        enabled: !root.busy;
+        clicked => { root.update-requested(); }
+    }
+}
+
 export component VersionsPage inherits Rectangle {
     in property <[HubVersion]> versions: [];
+    in property <[GitHubReleaseInfo]> github_releases: [];
     in-out property <bool> busy: false;
+    in-out property <string> selected_source: "channel";
     callback install-version();
+    callback install-github();
     callback update-version(string);
+    callback update-github();
     callback launch-version(string);
-
-    background: transparent;
+    callback source-changed(string);
 
     VerticalLayout {
         padding: 30px;
@@ -77,36 +155,72 @@ export component VersionsPage inherits Rectangle {
             color: HubTheme.text-primary;
             font-size: 24px;
             font-weight: 700;
+            horizontal-alignment: TextHorizontalAlignment.center;
         }
 
         Text {
             text: "Gerencie builds de teste a partir de pastas já extraídas.";
             color: HubTheme.text-dim;
             font-size: 12px;
+            horizontal-alignment: TextHorizontalAlignment.center;
         }
 
+        // alignment: start evita que o botão estique horizontalmente além do conteúdo
         HorizontalLayout {
+            alignment: LayoutAlignment.center;
+            cross-axis-alignment: CrossAxisAlignment.center;
+            spacing: 12px;
+
             ActionButton {
                 label: root.busy ? "Baixando build..." : "Instalar última versão";
+                min-width: 150px;
                 primary: true;
-                enabled: !root.busy;
+                enabled: !root.busy && root.selected_source == "channel";
                 clicked => { root.install-version(); }
             }
         }
 
-        if root.versions.length == 0 : Text {
-            text: "Nenhuma versão instalada. Instale uma build de teste para começar.";
-            color: HubTheme.text-dim;
-            font-size: 12px;
-            wrap: word-wrap;
+        if root.selected_source == "channel" : Rectangle {
+            VerticalLayout {
+                spacing: 18px;
+                if root.versions.length == 0 : Text {
+                    text: "Nenhuma versão instalada. Instale uma build de teste para começar.";
+                    color: HubTheme.text-dim;
+                    font-size: 12px;
+                    horizontal-alignment: TextHorizontalAlignment.center;
+                    wrap: word-wrap;
+                }
+
+                for version in root.versions : VersionRow {
+                    name: version.name;
+                    path: version.path;
+                    source: version.source;
+                    busy: root.busy;
+                    launch-requested(path) => { root.launch-version(path); }
+                    update-requested(path) => { root.update-version(path); }
+                }
+            }
         }
 
-        for version in root.versions : VersionRow {
-            name: version.name;
-            path: version.path;
-            busy: root.busy;
-            launch-requested(path) => { root.launch-version(path); }
-            update-requested(path) => { root.update-version(path); }
+        if root.selected_source == "github" : Rectangle {
+            VerticalLayout {
+                spacing: 18px;
+                if root.github_releases.length == 0 : Text {
+                    text: "Nenhum release do GitHub encontrado.";
+                    color: HubTheme.text-dim;
+                    font-size: 12px;
+                    wrap: word-wrap;
+                }
+
+                for release in root.github_releases : GitHubReleaseRow {
+                    version: release.version;
+                    release_notes: release.release_notes;
+                    asset_size: release.asset_size;
+                    busy: root.busy;
+                    install-requested() => { root.install-github(); }
+                    update-requested() => { root.update-github(); }
+                }
+            }
         }
     }
 }

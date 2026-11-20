@@ -4562,12 +4562,17 @@ dependencies = [
 name = "ruana-hub"
 version = "0.6.0"
 dependencies = [
+ "png",
  "reqwest",
+ "resvg 0.49.0",
  "serde",
  "serde_json",
  "sha2",
  "slint",
  "slint-build",
+ "tiny-skia 0.12.0",
+ "version-compare",
+ "winresource",
  "zip",
 ]
 
@@ -6085,6 +6090,12 @@ dependencies = [
  "serde_core",
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "version-compare"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "579a42fc0b8e0c63b76519a339be31bed574929511fa53c1a3acae26eb258f29"
 
 [[package]]
 name = "version_check"
