@@ -33,33 +33,46 @@ export component InsertSlot inherits Rectangle {
     private property <bool> drag-active: false;
 
     height: InsertStyle.slot-h(root.compact);
+    width: 100%;
     background: root.dragging
         ? InsertStyle.slot-bg-dragging
         : InsertStyle.slot-bg;
-    border-radius: 3px;
+    border-radius: 6px;
     border-width: 1px;
     border-color: (root.dragging || root.drop-target)
-        ? InsertStyle.slot-border-active
+        ? InsertStyle.slot-border-drag
         : InsertStyle.slot-border;
+
+    // Barra de acento lateral esquerda (cor do efeito)
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: 3px;
+        height: 100%;
+        background: InsertStyle.slot-accent-bar;
+        border-radius: 6px;
+        clip: true;
+        opacity: root.name == "" ? 0.3 : 1.0;
+    }
 
     states [
         disabled when !root.enabled: {
-            opacity: 0.55;
+            opacity: 0.5;
         }
         hovered when ta.has-hover && !root.editing: {
-            border-color: InsertStyle.slot-border-active;
-            background: InsertStyle.slot-bg.with-alpha(0.15);
+            border-color: InsertStyle.slot-border-hover;
+            background: InsertStyle.slot-bg-hover;
         }
     ]
 
     // Número do slot
     Text {
-        x: 6px;
-        width: 16px;
+        x: 10px;
+        width: 18px;
         height: 100%;
         color: InsertStyle.slot-number-color;
         font-size: InsertStyle.slot-number-size(root.compact);
-        font-weight: 600;
+        font-weight: 700;
         horizontal-alignment: left;
         vertical-alignment: center;
         text: (root.slot-index + 1);
@@ -67,15 +80,16 @@ export component InsertSlot inherits Rectangle {
 
     // Nome do processador
     if !root.editing: Text {
-        x: 22px;
-        width: parent.width - InsertStyle.icon-area-w(root.compact) - 26px;
+        x: 30px;
+        width: parent.width - InsertStyle.icon-area-w(root.compact) - 34px;
         height: 100%;
-        color: root.name == "" ? InsertStyle.slot-number-color : InsertStyle.slot-name-color;
+        color: root.name == "" ? InsertStyle.slot-empty-color : InsertStyle.slot-name-color;
         font-size: InsertStyle.slot-name-size(root.compact);
+        font-weight: root.name == "" ? 400 : 500;
         horizontal-alignment: left;
         vertical-alignment: center;
         overflow: TextOverflow.elide;
-        text: root.name == "" ? "Vazio" : root.name;
+        text: root.name == "" ? "— Vazio —" : root.name;
     }
 
     // Arrastar pelo número/nome reordena. Double-click entra no rename inline.
@@ -101,7 +115,7 @@ export component InsertSlot inherits Rectangle {
                 if (root.drag-active) {
                     root.drag-move(
                         root.slot-index,
-                        Math.round((self.mouse-y - root.press-y) / 1px / 24)
+                        Math.round((self.mouse-y - root.press-y) / InsertStyle.slot-h(root.compact))
                     );
                 }
             } else {
@@ -109,7 +123,7 @@ export component InsertSlot inherits Rectangle {
                     root.drag-active = false;
                     root.drag-drop(
                         root.slot-index,
-                        Math.round((self.mouse-y - root.press-y) / 1px / 24)
+                        Math.round((self.mouse-y - root.press-y) / InsertStyle.slot-h(root.compact))
                     );
                 }
             }
@@ -118,8 +132,8 @@ export component InsertSlot inherits Rectangle {
 
     // Campo de edição do nome (por cima do drag-area, só quando editando).
     if root.editing: TextInput {
-        x: 22px;
-        width: parent.width - InsertStyle.icon-area-w(root.compact) - 26px;
+        x: 30px;
+        width: parent.width - InsertStyle.icon-area-w(root.compact) - 34px;
         height: 100%;
         text <=> root.draft;
         color: Theme.text-primary;
@@ -142,23 +156,23 @@ export component InsertSlot inherits Rectangle {
         }
     }
 
-    // Power (bypass)
+    // Power (bypass) - botão circular
     Button {
         width: InsertStyle.power-w(root.compact);
         height: InsertStyle.power-h(root.compact);
-        x: parent.width - InsertStyle.icon-area-w(root.compact) + 2px;
+        x: parent.width - InsertStyle.icon-area-w(root.compact) + 4px;
         y: (parent.height - self.height) / 2;
         icon: @image-url("../icons/power.svg");
         icon-size: InsertStyle.power-icon-size(root.compact);
         borderless: true;
-        icon-color: root.enabled ? Theme.ok : Theme.text-dim;
+        icon-color: root.enabled ? InsertStyle.slot-power-on : InsertStyle.slot-power-off;
         keep-icon-color: true;
         resting-bg: InsertStyle.slot-bg;
-        hover-bg: InsertStyle.slot-bg.with-alpha(0.3);
+        hover-bg: InsertStyle.slot-bg.with-alpha(0.2);
         clicked => { root.toggle(); }
     }
 
-    // Remover
+    // Remover - botão circular
     Button {
         width: InsertStyle.remove-w(root.compact);
         height: InsertStyle.remove-h(root.compact);
@@ -168,6 +182,7 @@ export component InsertSlot inherits Rectangle {
         icon-size: InsertStyle.remove-icon-size(root.compact);
         borderless: true;
         icon-color: Theme.text-dim;
+        keep-icon-color: true;
         resting-bg: InsertStyle.slot-bg;
         hover-bg: Theme.danger.with-alpha(0.15);
         clicked => { root.remove(); }

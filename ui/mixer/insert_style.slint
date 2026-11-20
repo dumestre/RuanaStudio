@@ -9,61 +9,67 @@ import { Theme } from "../theme.slint";
 
 export global InsertStyle {
 
-    // Altura do slot.
+    // Altura do slot - mais alto para melhor visual
     public pure function slot-h(c: bool) -> length {
-        return c ? 20px : 24px;
+        return c ? 32px : 40px;
     }
 
     // Espaçamento entre slots.
     public pure function slot-gap(c: bool) -> length {
-        return c ? 2px : 4px;
+        return c ? 4px : 6px;
     }
 
     // Largura da área de ícones (power + remover) à direita.
     public pure function icon-area-w(c: bool) -> length {
-        return c ? 30px : 38px;
+        return c ? 40px : 52px;
     }
 
     // Botão power.
     public pure function power-w(c: bool) -> length {
-        return c ? 14px : 16px;
+        return c ? 20px : 24px;
     }
 
     public pure function power-h(c: bool) -> length {
-        return c ? 14px : 16px;
+        return c ? 20px : 24px;
     }
 
     public pure function power-icon-size(c: bool) -> length {
-        return c ? 9px : 10px;
+        return c ? 10px : 12px;
     }
 
     // Botão remover.
     public pure function remove-w(c: bool) -> length {
-        return c ? 12px : 14px;
+        return c ? 20px : 24px;
     }
 
     public pure function remove-h(c: bool) -> length {
-        return c ? 12px : 14px;
+        return c ? 20px : 24px;
     }
 
     public pure function remove-icon-size(c: bool) -> length {
-        return c ? 8px : 9px;
+        return c ? 10px : 12px;
     }
 
     // Fontes.
     public pure function slot-number-size(c: bool) -> length {
-        return c ? 8px : 9px;
+        return c ? 9px : 10px;
     }
 
     public pure function slot-name-size(c: bool) -> length {
-        return c ? 9px : 10px;
+        return c ? 10px : 11px;
     }
 
     // Cores.
     out property <color> slot-bg: Theme.base;
-    out property <color> slot-bg-dragging: Theme.surface-high;
+    out property <color> slot-bg-hover: Theme.surface-high;
+    out property <color> slot-bg-dragging: Theme.accent.with-alpha(0.15);
     out property <color> slot-border: Theme.border;
-    out property <color> slot-border-active: Theme.accent;
+    out property <color> slot-border-hover: Theme.accent.with-alpha(0.5);
+    out property <color> slot-border-drag: Theme.accent;
     out property <color> slot-number-color: Theme.text-dim;
     out property <color> slot-name-color: Theme.text-primary;
+    out property <color> slot-empty-color: Theme.text-dim.with-alpha(0.5);
+    out property <color> slot-accent-bar: Theme.accent;
+    out property <color> slot-power-on: Theme.ok;
+    out property <color> slot-power-off: Theme.text-dim;
 }
