@@ -9,8 +9,8 @@ export component DonationDialog inherits Rectangle {
     height: 100%;
     background: transparent;
 
-    // Backdrop com cor sólida escura (sem blur real no Slint, usamos alpha)
-    Rectangle {
+    // Backdrop com cor sólida escura (aparece só quando open)
+    if root.open: Rectangle {
         width: parent.width;
         height: parent.height;
         background: #0A080F.with-alpha(0.80);
