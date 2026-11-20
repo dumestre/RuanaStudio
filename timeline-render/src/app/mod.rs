@@ -306,6 +306,11 @@ pub struct App {
     /// desenhar, deletar, desfazer/refazer...). O host reconciliam com
     /// `Project` (fonte da verdade do áudio). `None` = standalone.
     pub clip_write_back: Option<Box<dyn FnMut(&[clips::ClipDemo])>>,
+    /// Callback de COMMIT de FADE/GANHO: invocado quando um arrasto de
+    /// handle de fade termina. Argumentos: (id do clip no Project,
+    /// fade-in em beats, fade-out em beats, ganho em dB). `id == 0`
+    /// significa clip só da engine (ainda sem contraparte) e não é emitido.
+    pub fade_write_back: Option<Box<dyn FnMut(u32, f32, f32, f32)>>,
     /// Callback de "abrir clip" (duplo clique na timeline). Recebe o id do
     /// clip no `Project` (nunca 0 — clip ainda sem id real é ignorado). O
     /// host decide o editor: MIDI → piano roll, áudio → sampler. `None` =
@@ -965,6 +970,7 @@ transport,
             tempo_commit: None,
             timewarp_drag: None,
             clip_write_back: None,
+            fade_write_back: None,
             clip_open_request: None,
             last_press: None,
 

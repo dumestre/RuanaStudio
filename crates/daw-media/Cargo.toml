@@ -5,7 +5,7 @@ edition.workspace = true
 
 [dependencies]
 hound = "3.5"
-dirs = "6.0"
+dirs = "7.0.0"
 tiny-skia = "0.12"
 symphonia = { version = "0.6", features = ["wav", "mp3", "flac", "ogg", "pcm"] }
 

@@ -233,8 +233,11 @@ pub fn build_clip_instances(
             if seam_x >= x
                 && seam_x <= x + draw_w
             {
+                // Emenda do glue: linha TRACEJADA clara, legível sobre
+                // qualquer cor de clip (antes era um cinza escuro 0x262626
+                // que sumia no clip). Mais visível no hover.
                 let seam_col =
-                    (0x26, 0x26, 0x26);
+                    (0xF2, 0xF2, 0xF2);
 
                 let is_hovered =
                     inter.seam_hover_idx
@@ -242,13 +245,13 @@ pub fn build_clip_instances(
 
                 let alpha: u8 =
                     if is_hovered {
-                        200
+                        255
                     } else {
-                        110
+                        205
                     };
 
                 let dash_w = 2.0;
-                let dash_h = 5.0;
+                let dash_h = 6.0;
                 let gap = 3.0;
 
                 let mut dy = y;

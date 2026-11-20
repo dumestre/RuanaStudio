@@ -1,0 +1,130 @@
+import { Theme } from "../theme.slint";
+import { Button } from "button.slint";
+
+// ============================================================
+// SETTINGS MENU (toolbar)
+//
+// O seletor de TEMA saiu da toolbar e passou a viver aqui: clicar em
+// "Settings" abre um painel em lista com as opções (tema + espaço para
+// futuras configurações). O tema é aplicado na hora em que a linha é
+// clicada e o popup fecha.
+// ============================================================
+
+export component SettingsMenu inherits Rectangle {
+
+    callback theme-selected(int);
+
+    in property <[string]> theme-names: [
+        "Studio Dark",
+        "Midnight Blue",
+        "Violeta Ruana",
+        "Volt",
+        "Sunset",
+        "Ocean Teal",
+        "Paper"
+    ];
+
+    height: 18px;
+    width: settings-btn.preferred-width;
+
+    settings-btn := Button {
+        text: "Settings";
+        height: 18px;
+        padding-x: 3px;
+        borderless: true;
+        text-color: Theme.text-primary;
+        letter-spacing: 1px;
+        corner-radius: 2px;
+        resting-bg: Theme.Transparent;
+
+        clicked => {
+            popup.show();
+        }
+    }
+
+    popup := PopupWindow {
+        x: 0px;
+        y: 22px;
+        width: 188px;
+        height: 232px;
+
+        Rectangle {
+            background: Theme.surface-high;
+            border-width: 1px;
+            border-color: Theme.border;
+            border-radius: 4px;
+            drop-shadow-blur: 14px;
+            drop-shadow-color: #00000070;
+            drop-shadow-offset-y: 3px;
+
+            VerticalLayout {
+                padding: 6px;
+                spacing: 2px;
+
+                // ---- Cabeçalho ----
+                Text {
+                    text: "SETTINGS";
+                    height: 18px;
+                    color: Theme.text-dim;
+                    font-size: 9px;
+                    font-weight: 700;
+                    letter-spacing: 1px;
+                    vertical-alignment: center;
+                    horizontal-alignment: left;
+                }
+
+                // ---- Seção: Theme ----
+                Text {
+                    text: "Theme";
+                    height: 16px;
+                    color: Theme.text-dim;
+                    font-size: 9px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                    horizontal-alignment: left;
+                }
+
+                // ---- Lista de temas ----
+                for n[i] in root.theme-names : TouchArea {
+                    height: 24px;
+
+                    Rectangle {
+                        background:
+                            parent.has-hover ? Theme.accent.transparentize(0.80)
+                            : i == Theme.active ? Theme.accent.transparentize(0.88)
+                            : transparent;
+                        border-radius: 3px;
+
+                        // marcador do tema ativo
+                        Rectangle {
+                            visible: i == Theme.active;
+                            x: 2px;
+                            y: (parent.height - self.height) / 2;
+                            width: 2px;
+                            height: 12px;
+                            border-radius: 1px;
+                            background: Theme.accent;
+                        }
+
+                        Text {
+                            text: n;
+                            x: 10px;
+                            width: parent.width - 14px;
+                            height: parent.height;
+                            font-size: 11px;
+                            vertical-alignment: center;
+                            horizontal-alignment: left;
+                            color: i == Theme.active ? Theme.accent : Theme.text-primary;
+                        }
+                    }
+
+                    clicked => {
+                        Theme.active = i;
+                        root.theme-selected(i);
+                        popup.close();
+                    }
+                }
+            }
+        }
+    }
+}

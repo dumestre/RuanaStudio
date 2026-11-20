@@ -862,6 +862,12 @@ pub fn setup(
 
     ui.on_tool_changed(move |tool| {
         let _ = set_cursor_for_tool(tool);
+        // A engine wgpu é quem executa a ferramenta (slice, draw, erase,
+        // glue...). Sem isto o cursor mudava mas a timeline continuava em
+        // Select — daí "só seleciona e não corta".
+        if let Some(engine_tool) = crate::timeline_slint::tool_from_ui_index(tool) {
+            timeline_render::tools::set_tool(engine_tool);
+        }
     });
 
     {

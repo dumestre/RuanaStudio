@@ -1,7 +1,7 @@
 import { Button } from "components/button.slint";
 import { Theme } from "theme.slint";
 import { ProjectKey } from "components/project_key.slint";
-import { ThemePicker } from "components/theme_picker.slint";
+import { SettingsMenu } from "components/settings_menu.slint";
 import { Transport } from "transport.slint";
 import { EditToolbar } from "edit_toolbar.slint";
 import { KnobWithoutText } from "components/knob.slint";
@@ -204,17 +204,14 @@ export component Toolbar inherits Rectangle {
                 clicked => {}
             }
 
-            Button {
-                text: "Settings";
-                height: 18px;
-                padding-x: 3px;
-                borderless: true;
-                text-color: Theme.text-primary;
-                letter-spacing: 1px;
-                corner-radius: 2px;
-                resting-bg: Theme.Transparent;
+            // ----------------------------------------------------
+            // SETTINGS (abre a lista de configurações, incluindo TEMA)
+            // ----------------------------------------------------
 
-                clicked => {}
+            SettingsMenu {
+                theme-selected(i) => {
+                    root.theme-selected(i);
+                }
             }
 
             Button {
@@ -384,14 +381,8 @@ export component Toolbar inherits Rectangle {
 
 
             // ----------------------------------------------------
-            // THEME PICKER
+            // (O seletor de TEMA agora vive em Settings, acima)
             // ----------------------------------------------------
-
-            ThemePicker {
-                theme-selected(i) => {
-                    root.theme-selected(i);
-                }
-            }
         }
 
 
@@ -399,7 +390,8 @@ export component Toolbar inherits Rectangle {
         // TRANSPORT
         // ========================================================
 
-        EditToolbar { }
+        EditToolbar {
+            clip-pool-open: false; }
 
         Transport {
             playing <=> root.playing;

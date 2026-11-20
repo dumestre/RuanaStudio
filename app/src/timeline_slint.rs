@@ -99,6 +99,54 @@ pub fn build_clip_demos(proj: &Project) -> Vec<ClipDemo> {
         .collect()
 }
 
+/// Converte o índice de ferramenta da edit toolbar do Slint para o enum
+/// `Tool` da engine wgpu.
+///
+/// AS DUAS NUMERAÇÕES SÃO DIFERENTES (era o bug do "slice não corta"):
+///   Slint / `ToolCursor`: 0 Select, 1 Slice, 2 Glue, 3 Stretch, 4 Draw,
+///                         5 Erase, 6 MarkerPosition, 7 MarkerRegion,
+///                         8 MarkerLoop, 9 MarkerCdTrack
+///   engine `Tool`:        0 Select, 1 Draw, 2 Stretch, 3 Slice, 4 Erase,
+///                         5 Glue, 6.. marcadores
+///
+/// Antes o callback `tool-changed` só trocava o CURSOR: a engine continuava
+/// eternamente em `Select`, então Slice/Erase/Glue/Draw nunca entravam em
+/// ação na timeline.
+pub fn tool_from_ui_index(index: i32) -> Option<timeline_render::tools::Tool> {
+    use timeline_render::tools::Tool;
+    Some(match index {
+        0 => Tool::Select,
+        1 => Tool::Slice,
+        2 => Tool::Glue,
+        3 => Tool::Stretch,
+        4 => Tool::Draw,
+        5 => Tool::Erase,
+        6 => Tool::MarkerPosition,
+        7 => Tool::MarkerRegion,
+        8 => Tool::MarkerLoop,
+        9 => Tool::MarkerCdTrack,
+        _ => return None,
+    })
+}
+
+/// Inverso de [`tool_from_ui_index`]: ferramenta ativa na engine → índice
+/// que a edit toolbar do Slint usa (para refletir atalhos 1..6 na UI).
+pub fn ui_index_from_tool(tool: timeline_render::tools::Tool) -> i32 {
+    use timeline_render::tools::Tool;
+    match tool {
+        Tool::Select => 0,
+        Tool::Slice => 1,
+        Tool::Glue => 2,
+        Tool::Stretch => 3,
+        Tool::Draw => 4,
+        Tool::Erase => 5,
+        Tool::MarkerPosition => 6,
+        Tool::MarkerRegion => 7,
+        Tool::MarkerLoop => 8,
+        Tool::MarkerCdTrack => 9,
+    }
+}
+
 /// Instala a timeline. Tenta a janela nativa wgpu (render direto); se a
 /// abertura falhar, cai no bridge offscreen (canvas do `timeline.slint`).
 ///
@@ -160,6 +208,22 @@ struct TimelineBridge {
 /// Constrói os clips da engine a partir do projeto do core (read-only).
 pub fn sync_clips_from_project(engine: &mut TimelineEngine, proj: &Project, bpm: f32) {
     engine.clips = build_clip_demos(proj);
+
+    // Fades/ganho acompanham a lista de clips, índice a índice
+    // (`render`/`interaction` leem `fades.get(i)` para desenhar as
+    // bolinhas do clip `i`). Antes o espelho trocava só `clips`, então
+    // clips vindos do documento ficavam SEM handles de fade/ganho — e o
+    // pie menu não teria como mostrar o preset aplicado.
+    engine.fades = proj
+        .clips
+        .iter()
+        .map(|c| timeline_render::fades::ClipFade {
+            in_len: c.fade_in_beats,
+            out_len: c.fade_out_beats,
+            gain_db: c.gain_db,
+            ..Default::default()
+        })
+        .collect();
 
     // Regenera o buffer de barras (min/max interleaved) por clip.
     // `bpm` converte os beats de origem (`source_start_beats`, trim do

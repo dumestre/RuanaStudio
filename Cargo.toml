@@ -11,6 +11,18 @@ members = [
     "timeline-render",
     "ruana-hub",
 ]
+exclude = ["vendor/bindgen-syn2"]
+
+# -----------------------------------------------------------------
+# WORKAROUND DE DEPENDÊNCIA (remover quando o bindgen suportar syn 3)
+#
+# Slint 1.19 -> skia-bindings 0.157 -> bindgen 0.73.2. O bindgen
+# declara `syn >=2, <4` mas não compila com syn 3 (que a Slint 1.19
+# exige). O shim em `vendor/bindgen-syn2` reexporta o bindgen 0.72.1
+# (syn 2) com a versão que o skia-bindings pede.
+# -----------------------------------------------------------------
+[patch.crates-io]
+bindgen = { path = "vendor/bindgen-syn2" }
 
 [workspace.package]
 version = "0.6.0"

@@ -1,0 +1,21 @@
+# Shim de compatibilidade do `bindgen` (somente build-dependency).
+#
+# Contexto: a Slint 1.19 -> `skia-bindings` 0.157 exige `bindgen` 0.73.2.
+# Esse bindgen declara compatibilidade com `syn >=2, <4`, mas usa API de
+# `syn` que só existe na série 2 — com `syn` 3 (exigido pela própria
+# Slint 1.19) a compilação falha em `parse_quote!(File)`.
+#
+# Este pacote se apresenta como `bindgen 0.73.2` e reexporta o bindgen
+# 0.72.1 (que fixa `syn = 2`), destravando o build sem rebaixar a Slint.
+# Remover quando o bindgen publicar suporte real a `syn` 3.
+[package]
+name = "bindgen"
+version = "0.73.2"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+bindgen_real = { package = "bindgen", version = "=0.72.1" }

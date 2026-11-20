@@ -86,7 +86,7 @@ fn render_svg_to_png(
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     use resvg::render;
     use resvg::tiny_skia::{Pixmap, Transform};
-    use usvg::{Options, Tree};
+    use resvg::usvg::{Options, Tree};
 
     let svg_data = std::fs::read(svg_path)?;
     let opt = Options::default();
@@ -221,7 +221,7 @@ fn render_svg_to_rgba(
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     use resvg::render;
     use resvg::tiny_skia::{Pixmap, Transform};
-    use usvg::{Options, Tree};
+    use resvg::usvg::{Options, Tree};
 
     let svg_data = std::fs::read(svg_path)?;
     let opt = Options::default();

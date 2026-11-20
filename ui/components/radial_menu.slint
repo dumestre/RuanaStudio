@@ -1,0 +1,441 @@
+import { Theme } from "../theme.slint";
+
+// ============================================================
+// RADIAL / PIE MENU  (botão direito num clip da timeline)
+//
+// Dois anéis em volta do ponto do clique:
+//   • anel EXTERNO (8 setores)  -> ações do clip
+//   • anel INTERNO (6 setores)  -> ferramentas da timeline
+//   • hub central               -> nome do clip + item sob o cursor
+//
+// O menu é um overlay Slint (mesmo padrão do ContextMenu): o
+// estado vive no global PieMenuState, escrito pelo host Rust no
+// botão direito, e lido aqui.
+//
+// A geometria dos setores é gerada como comandos SVG (string),
+// com cada Path usando um viewbox 1:1 (0 0 240 240) sobre um
+// elemento de 240x240 — assim as coordenadas do path caem
+// exatamente em pixels, sem o "fit" redimensionar cada setor.
+// ============================================================
+
+
+// ------------------------------------------------------------
+// ITENS
+// ------------------------------------------------------------
+
+export struct PieAction {
+    label: string,
+    action: string,
+    icon: image,
+    danger: bool,
+}
+
+export struct PieTool {
+    label: string,
+    tool: int,
+    icon: image,
+}
+
+
+// ------------------------------------------------------------
+// ESTADO GLOBAL (escrito pelo Rust, lido pelo overlay)
+// ------------------------------------------------------------
+
+export global PieMenuState {
+    in-out property <bool> open: false;
+
+    // Posição do clique em coordenadas de janela (px lógicos).
+    in-out property <length> x: 0px;
+    in-out property <length> y: 0px;
+
+    // Clip alvo no Project.
+    in-out property <int> clip-id: -1;
+
+    // Offset do clique DENTRO do clip, em beats (usado pelo Slice).
+    in-out property <float> beat: 0.0;
+
+    in-out property <string> clip-name: "";
+}
+
+
+// ------------------------------------------------------------
+// COMPONENTE
+// ------------------------------------------------------------
+
+export component RadialMenu inherits Rectangle {
+
+    in-out property <bool> open: false;
+
+    in property <length> menu-x: 0px;
+    in property <length> menu-y: 0px;
+
+    in property <string> clip-name: "";
+
+    // Índice de ferramenta do toolbar do Slint (0 Select .. 5 Erase).
+    in property <int> active-tool: -1;
+
+    callback action-chosen(string);
+    callback tool-chosen(int);
+    callback dismissed();
+
+    visible: root.open;
+
+
+    // ========================================================
+    // CONTEÚDO DOS ANÉIS
+    // ========================================================
+
+    private property <[PieAction]> actions: [
+        { label: "Copy", action: "copy", icon: @image-url("../icons/clippool.svg"), danger: false },
+        { label: "Duplicate", action: "duplicate", icon: @image-url("../icons/add.svg"), danger: false },
+        { label: "Color", action: "color", icon: @image-url("../icons/palette.svg"), danger: false },
+        { label: "Fade", action: "fade", icon: @image-url("../icons/fx.svg"), danger: false },
+        { label: "Gain", action: "gain", icon: @image-url("../icons/fader.png"), danger: false },
+        { label: "Slice", action: "slice", icon: @image-url("../icons/slice.svg"), danger: false },
+        { label: "Glue", action: "glue", icon: @image-url("../icons/glue.svg"), danger: false },
+        { label: "Delete", action: "delete", icon: @image-url("../icons/close.svg"), danger: true }
+    ];
+
+    private property <[PieTool]> tools: [
+        { label: "Select", tool: 0, icon: @image-url("../icons/select.svg") },
+        { label: "Slice", tool: 1, icon: @image-url("../icons/slice.svg") },
+        { label: "Glue", tool: 2, icon: @image-url("../icons/glue.svg") },
+        { label: "Stretch", tool: 3, icon: @image-url("../icons/expand_diag.svg") },
+        { label: "Draw", tool: 4, icon: @image-url("../icons/draw.svg") },
+        { label: "Erase", tool: 5, icon: @image-url("../icons/erase.svg") }
+    ];
+
+
+    // ========================================================
+    // GEOMETRIA DOS SETORES
+    //
+    // Ângulo em graus, 0 = 12 horas, positivo no sentido horário.
+    // ========================================================
+
+    pure function nn(v: float) -> string {
+        return (Math.round(v * 100) * 0.01).to-string-unlocalized();
+    }
+
+    pure function wx(r: float, deg: float) -> float {
+        return 120 + r * Math.sin(deg * 1deg);
+    }
+
+    pure function wy(r: float, deg: float) -> float {
+        return 120 - r * Math.cos(deg * 1deg);
+    }
+
+    pure function pxy(r: float, deg: float) -> string {
+        return nn(wx(r, deg)) + "," + nn(wy(r, deg));
+    }
+
+    // Setor de anel: arco externo (sentido horário) + arco interno
+    // (anti-horário), fechado.
+    pure function wedge(r0: float, r1: float, from: float, to: float) -> string {
+        return "M " + pxy(r1, from)
+            + " A " + nn(r1) + "," + nn(r1) + " 0 0 1 " + pxy(r1, to)
+            + " L " + pxy(r0, to)
+            + " A " + nn(r0) + "," + nn(r0) + " 0 0 0 " + pxy(r0, from)
+            + " Z";
+    }
+
+    // Posição de um elemento (ícone/texto) no meio do setor.
+    pure function item-x(r: float, deg: float) -> length {
+        return wx(r, deg) * 1px;
+    }
+
+    pure function item-y(r: float, deg: float) -> length {
+        return wy(r, deg) * 1px;
+    }
+
+
+    // ========================================================
+    // DETECÇÃO DO SETOR SOB O CURSOR
+    //
+    // atan2(dx, -dy) devolve o ângulo a partir de 12 horas,
+    // positivo no sentido horário. Os "buracos" entre setores
+    // devolvem -1 (nada aceso).
+    // ========================================================
+
+    pure function outer-index(a: angle) -> int {
+        return a < 18.5deg ? 0
+            : a < 26.5deg ? -1
+            : a < 63.5deg ? 1
+            : a < 71.5deg ? -1
+            : a < 108.5deg ? 2
+            : a < 116.5deg ? -1
+            : a < 153.5deg ? 3
+            : a < 161.5deg ? -1
+            : a < 198.5deg ? 4
+            : a < 206.5deg ? -1
+            : a < 243.5deg ? 5
+            : a < 251.5deg ? -1
+            : a < 288.5deg ? 6
+            : a < 296.5deg ? -1
+            : a < 333.5deg ? 7
+            : a < 341.5deg ? -1
+            : 0;
+    }
+
+    pure function inner-index(a: angle) -> int {
+        return a < 27deg ? 0
+            : a < 33deg ? -1
+            : a < 87deg ? 1
+            : a < 93deg ? -1
+            : a < 147deg ? 2
+            : a < 153deg ? -1
+            : a < 207deg ? 3
+            : a < 213deg ? -1
+            : a < 267deg ? 4
+            : a < 273deg ? -1
+            : a < 327deg ? 5
+            : a < 333deg ? -1
+            : 0;
+    }
+
+
+    // ========================================================
+    // BACKDROP — clique fora fecha
+    // ========================================================
+
+    TouchArea {
+        clicked => {
+            root.dismissed();
+        }
+    }
+
+
+    // ========================================================
+    // O MENU
+    // ========================================================
+
+    pie := Rectangle {
+        width: 240px;
+        height: 240px;
+
+        x: Math.min(
+            Math.max(4px, root.menu-x - 120px),
+            Math.max(4px, parent.width - 244px)
+        );
+
+        y: Math.min(
+            Math.max(4px, root.menu-y - 120px),
+            Math.max(4px, parent.height - 244px)
+        );
+
+    
+
+        // ---- base do donut ----
+        Path {
+            x: 0;
+            y: 0;
+            width: 240px;
+            height: 240px;
+            viewbox-width: 240;
+            viewbox-height: 240;
+            fit: ImageFit.fill;
+            commands: "M 120,4 A 116,116 0 1 1 120,236 A 116,116 0 1 1 120,4 Z";
+            fill: Theme.surface.transparentize(0.18);
+        }
+
+        // ---- anel externo: ações do clip ----
+        for it[i] in root.actions : Path {
+            x: 0;
+            y: 0;
+            width: 240px;
+            height: 240px;
+            viewbox-width: 240;
+            viewbox-height: 240;
+            fit: ImageFit.fill;
+
+            commands: root.wedge(76, 114, i * 45 - 20, i * 45 + 20);
+
+            fill: root.hot-outer == i
+                ? (it.danger ? Theme.warn : Theme.accent)
+                : (it.danger ? Theme.warn.transparentize(0.82) : Theme.surface-high);
+        }
+
+        // ---- anel interno: ferramentas ----
+        for it[i] in root.tools : Path {
+            x: 0;
+            y: 0;
+            width: 240px;
+            height: 240px;
+    
+            viewbox-width: 240;
+            viewbox-height: 240;
+            fit: ImageFit.fill;
+
+            commands: root.wedge(44, 72, i * 60 - 29, i * 60 + 29);
+
+            fill: root.hot-inner == i
+                ? Theme.accent
+                : (root.active-tool == it.tool
+                    ? Theme.accent.transparentize(0.55)
+                    : Theme.surface-high.transparentize(0.35));
+        }
+
+        // ---- separadores/aro do hub ----
+        Path {
+            x: 0;
+            y: 0;
+            width: 240px;
+            height: 240px;
+        
+            viewbox-width: 240;
+            viewbox-height: 240;
+            fit: ImageFit.fill;
+            commands: "M 120,82 A 38,38 0 1 1 120,158 A 38,38 0 1 1 120,82 Z";
+            fill: Theme.surface;
+        }
+
+        Path {
+            x: 0;
+            y: 0;
+            width: 240px;
+            height: 240px;
+   
+            viewbox-width: 240;
+            viewbox-height: 240;
+            fit: ImageFit.fill;
+            commands: "M 120,81 A 39,39 0 1 1 120,159 A 39,39 0 1 1 120,81 Z";
+            fill: Theme.accent.transparentize(0.72);
+        }
+
+        // ---- hub: nome do clip + item em foco ----
+        Text {
+            text: root.clip-name;
+            x: 88px;
+            y: 102px;
+            width: 64px;
+            height: 12px;
+            font-size: 8px;
+            font-weight: 700;
+            color: Theme.text-dim;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        Text {
+            text: root.hot-label;
+            x: 84px;
+            y: 114px;
+            width: 72px;
+            height: 14px;
+            font-size: 9px;
+            font-weight: 700;
+            color: root.hot-label-color;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        // ---- marcador do anel de ferramentas (dica) ----
+        Text {
+            text: "TOOLS";
+            x: 92px;
+            y: 128px;
+            width: 56px;
+            height: 10px;
+            font-size: 7px;
+            letter-spacing: 1px;
+            color: Theme.text-dim.transparentize(0.35);
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            visible: root.hot-label == "";
+        }
+
+        // ---- ícones do anel externo ----
+        for it[i] in root.actions : Image {
+            x: root.item-x(86, i * 45) - self.width / 2;
+            y: root.item-y(86, i * 45) - self.height / 2;
+            width: 15px;
+            height: 15px;
+            source: it.icon;
+            image-fit: contain;
+            colorize: root.hot-outer == i
+                ? Theme.on-accent
+                : (it.danger ? Theme.warn : Theme.text-primary);
+        }
+
+        // ---- labels do anel externo ----
+        for it[i] in root.actions : Text {
+            x: root.item-x(101, i * 45) - self.width / 2;
+            y: root.item-y(101, i * 45) - self.height / 2;
+            width: 42px;
+            height: 11px;
+            text: it.label;
+            font-size: 8px;
+            font-weight: 600;
+            color: root.hot-outer == i ? Theme.on-accent : Theme.text-primary;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        // ---- ícones do anel interno ----
+        for it[i] in root.tools : Image {
+            x: root.item-x(58, i * 60) - self.width / 2;
+            y: root.item-y(58, i * 60) - self.height / 2;
+            width: 16px;
+            height: 16px;
+            source: it.icon;
+            image-fit: contain;
+            colorize: root.hot-inner == i
+                ? Theme.on-accent
+                : (root.active-tool == it.tool ? Theme.on-accent : Theme.text-primary);
+        }
+
+        // ---- área de clique / hover (o menu inteiro) ----
+        pie-hit := TouchArea {
+            x: 0;
+            y: 0;
+    
+
+            clicked => {
+                if root.hot-outer >= 0 {
+                    root.action-chosen(root.actions[root.hot-outer].action);
+                } else if root.hot-inner >= 0 {
+                    root.tool-chosen(root.tools[root.hot-inner].tool);
+                } else {
+                    root.dismissed();
+                }
+            }
+        }
+    }
+
+
+    // ========================================================
+    // ESTADO DE HOVER (derivado do ponteiro no pie-hit)
+    // ========================================================
+
+    private property <float> hx: (pie-hit.mouse-x - 120px) / 1px;
+    private property <float> hy: (pie-hit.mouse-y - 120px) / 1px;
+    private property <float> hr: Math.sqrt(hx * hx + hy * hy);
+
+    private property <angle> raw-angle:
+        Math.atan2(hx, -hy) + 360deg;
+
+    private property <angle> hang:
+        raw-angle >= 360deg ? raw-angle - 360deg : raw-angle;
+
+    private property <int> hot-outer:
+        hr >= 74 && hr <= 118
+            ? outer-index(hang)
+            : -1;
+
+    private property <int> hot-inner:
+        hr >= 42 && hr < 74
+            ? inner-index(hang)
+            : -1;
+
+    private property <string> hot-label:
+        hot-outer >= 0 ? actions[hot-outer].label
+        : hot-inner >= 0 ? tools[hot-inner].label
+        : "";
+
+    private property <color> hot-label-color:
+        hot-outer >= 0 && actions[hot-outer].danger
+            ? Theme.warn
+            : Theme.accent;
+}

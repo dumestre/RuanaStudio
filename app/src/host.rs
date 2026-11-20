@@ -656,6 +656,58 @@ pub fn install_engine_callbacks(
                     // Botão do meio (middle) = pan (Slint envia middle=2)
                     engine.handle_mouse_button(ButtonState::Pressed, Some((px, py)));
                 }
+                1 => {
+                    // Botão direito sobre um CLIP = pie menu radial.
+                    // Fora de um clip, mantém o comportamento antigo
+                    // (nada): o menu de contexto do Slint não existe em
+                    // modo hosted porque os clips são desenhados pela
+                    // engine wgpu.
+                    if py > engine.ruler_px {
+                        let cm = engine.clip_metrics();
+                        if let Some(idx) = engine
+                            .clip_interaction
+                            .hit_test(&engine.clips, (px, py), &cm)
+                        {
+                            let (id, clip_beat, name) = {
+                                let clip = &engine.clips[idx];
+                                (
+                                    clip.id,
+                                    clip.beat,
+                                    clip.name.clone().unwrap_or_default(),
+                                )
+                            };
+                            if id != 0 {
+                                engine.clip_interaction.select_only(idx);
+                                let beat_offset =
+                                    (((px + engine.scroll_x)
+                                        / engine.px_per_beat.max(0.001))
+                                        - clip_beat)
+                                        .max(0.0);
+
+                                // Coordenadas de janela (lógicas) para o
+                                // overlay Slint: a origem da área de input
+                                // da engine é `TimelineMetrics.timeline-abs-*`.
+                                let m = <crate::TimelineMetrics as slint::Global<
+                                    crate::MainWindow,
+                                >>::get(&ui);
+                                let win_x = m.get_timeline_abs_x() + x;
+                                let win_y = m.get_timeline_abs_y() + y;
+
+                                let state = <crate::PieMenuState as slint::Global<
+                                    crate::MainWindow,
+                                >>::get(&ui);
+                                state.set_clip_id(id as i32);
+                                state.set_beat(beat_offset);
+                                state.set_clip_name(name.into());
+                                state.set_x(win_x);
+                                state.set_y(win_y);
+                                state.set_open(true);
+
+                                ui.set_selected_clip(id as i32);
+                            }
+                        }
+                    }
+                }
                 _ => {}
             }
             b.dirty = true;
@@ -738,6 +790,82 @@ pub fn install_engine_callbacks(
     // Tratar aqui também causaria double-toggle.
     {
         ui.on_engine_key_event(move |_text, _ctrl, _shift, _alt| {});
+    }
+
+    // ---- PIE MENU: FADE / GANHO EM CICLO DE PRESETS -------------------
+    //
+    // O menu radial manda só o id do clip; o Rust lê o valor atual do
+    // documento e aplica o PRÓXIMO preset. Os presets de fade são
+    // limitados a metade do clip (mesmo clamp do `set_clip_fades`) para
+    // não haver dois presets que caem no mesmo valor após o clamp.
+    let project_for_menu = bridge.borrow().project.clone();
+    {
+        let project = project_for_menu.clone();
+        ui.on_clip_fade_cycle_requested(move |id| {
+            let Some(clip) = project.borrow().clip(id.max(0) as u64).cloned() else {
+                return;
+            };
+            let max_fade = (clip.length_beats * 0.5).max(0.0);
+            let mut presets: Vec<f32> = vec![0.0];
+            for base in [0.25f32, 0.5, 1.0, 2.0, 4.0] {
+                let v = base.min(max_fade);
+                if !presets.iter().any(|p| (p - v).abs() < 0.001) {
+                    presets.push(v);
+                }
+            }
+            let cur = clip.fade_in_beats;
+            let mut best = 0usize;
+            let mut best_d = f32::MAX;
+            for (i, v) in presets.iter().enumerate() {
+                let d = (*v - cur).abs();
+                if d < best_d {
+                    best_d = d;
+                    best = i;
+                }
+            }
+            let next = presets[(best + 1) % presets.len()];
+            project.borrow_mut().set_clip_fades(clip.id, next, next);
+        });
+    }
+    {
+        let project = project_for_menu.clone();
+        ui.on_clip_gain_cycle_requested(move |id| {
+            let Some(clip) = project.borrow().clip(id.max(0) as u64).cloned() else {
+                return;
+            };
+            const PRESETS: [f32; 5] = [0.0, -3.0, -6.0, -12.0, 3.0];
+            let cur = clip.gain_db;
+            let mut best = 0usize;
+            let mut best_d = f32::MAX;
+            for (i, v) in PRESETS.iter().enumerate() {
+                let d = (*v - cur).abs();
+                if d < best_d {
+                    best_d = d;
+                    best = i;
+                }
+            }
+            let next = PRESETS[(best + 1) % PRESETS.len()];
+            project.borrow_mut().set_clip_gain(clip.id, next);
+        });
+    }
+
+    // ---- PERSISTÊNCIA DE FADE/GANHO ARRASTADOS NA ENGINE --------------
+    //
+    // O `sync_clips_from_project` reconstrói `engine.fades` a partir do
+    // documento; sem este write-back, arrastar um handle de fade na
+    // timeline seria desfeito no próximo rebuild do espelho.
+    {
+        let project = project_for_menu.clone();
+        bridge.borrow_mut().engine.fade_write_back = Some(Box::new(
+            move |id: u32, fade_in: f32, fade_out: f32, gain_db: f32| {
+                if id == 0 {
+                    return;
+                }
+                let mut proj = project.borrow_mut();
+                proj.set_clip_fades(id as u64, fade_in, fade_out);
+                proj.set_clip_gain(id as u64, gain_db);
+            },
+        ));
     }
 }
 
@@ -1186,7 +1314,7 @@ impl ApplicationHandler for Handler {
                 // os dois botões de play ficam coerentes.
                 // Não vai para o Slint como tecla, nem acontece
                 // double-toggle — só o routed-toggle resolve.
-                let (forward_to_slint, show_piano_roll, show_timewarp) = {
+                let (forward_to_slint, show_piano_roll, show_timewarp, ui_tool) = {
                     let mut b = bridge.borrow_mut();
                     let forward = match b.engine.handle_key(&key) {
                         timeline_render::app::KeyAction::TogglePlay => {
@@ -1196,8 +1324,20 @@ impl ApplicationHandler for Handler {
                         timeline_render::app::KeyAction::ExitWindow
                         | timeline_render::app::KeyAction::None => true,
                     };
-                    (forward, b.engine.show_piano_roll, b.engine.show_timewarp)
+                    (
+                        forward,
+                        b.engine.show_piano_roll,
+                        b.engine.show_timewarp,
+                        crate::timeline_slint::ui_index_from_tool(
+                            timeline_render::tools::current_tool(),
+                        ),
+                    )
                 };
+                // Atalhos 1..6 trocam a ferramenta direto na engine: espelha
+                // no toolbar do Slint para o botão aceso não ficar mentindo.
+                if ui.get_active_tool() != ui_tool {
+                    ui.set_active_tool(ui_tool);
+                }
                 if key.state == ElementState::Pressed
                     && matches!(
                         &key.logical_key,

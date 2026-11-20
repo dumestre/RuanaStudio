@@ -559,9 +559,14 @@ impl App {
             return;
         }
 
-        // Clique vazio com Select: deseleciona
+        // Clique vazio na régua com Select: deseleciona o marcador E inicia
+        // o scrub da playhead. Sem ligar `scrubbing` aqui o arrasto na régua
+        // não move a agulha: o `handle_cursor_moved` só segue o mouse quando
+        // `scrubbing` está ativo (era o bug do "playhead não cola no mouse").
         if tool == Tool::Select && matches!(state, ButtonState::Pressed) {
             self.marker_selected_id = None;
+            self.scrubbing = true;
+            self.set_playhead_from_x(pos.0);
             self.request_redraw();
             return;
         }
@@ -1348,6 +1353,29 @@ self.play_start_seconds = self.transport_seconds;
             }
             ButtonState::Released => {
                 if self.fade_interaction.is_dragging() {
+                    // Persiste o fade/ganho no documento (por id de clip).
+                    // O host grava em `Project::set_clip_fades` /
+                    // `set_clip_gain`; sem isso o próximo rebuild do espelho
+                    // (que agora re-sincroniza `fades` a partir do Project)
+                    // apagaria o que o usuário acabou de arrastar.
+                    if let Some(idx) = self
+                        .fade_interaction
+                        .active_drag
+                        .as_ref()
+                        .map(|d| d.clip_index)
+                    {
+                        let id = self.clips.get(idx).map(|c| c.id).unwrap_or(0);
+                        let commit = self.fades.get(idx).map(|f| {
+                            (id, f.in_len, f.out_len, f.gain_db)
+                        });
+                        if let Some((id, fi, fo, gain)) = commit {
+                            if id != 0 {
+                                if let Some(write) = self.fade_write_back.as_mut() {
+                                    write(id, fi, fo, gain);
+                                }
+                            }
+                        }
+                    }
                     self.fade_interaction.end_drag();
                     return;
                 }
@@ -1563,54 +1591,9 @@ self.rebuild_wave_data();
             }
         }
 
-        // Snap magnÃ©tico: quando o cursor chega perto de um handle, puxa-o
-        // para o centro exato da bolinha â€” uma vez sÃ³. ApÃ³s o snap, o cursor
-        // pode sair livremente (sem resistÃªncia) atÃ© perder o hover.
-        if !self.scrubbing
-            && !self.clip_interaction.is_dragging()
-            && !self.fade_interaction.is_dragging()
-        {
-            if let Some((clip_idx, kind)) = self.fade_interaction.hovered {
-                if let Some((clip, fade)) =
-                    self.clips.get(clip_idx).zip(self.fades.get(clip_idx))
-                {
-                    let (cx, cy, cw, ch) = clips::clip_rect(clip, &cm);
-                    let header_h = 16.0;
-                    let body_x = cx;
-                    let body_y = cy + header_h;
-                    let body_w = cw;
-                    let body_h = ch - header_h;
-                    if let Some((hx, hy)) = fades::handle_position(
-                        kind,
-                        fade,
-                        body_x,
-                        body_y,
-                        body_w,
-                        body_h,
-                        self.px_per_beat,
-                    ) {
-                        let dist_sq =
-                            (pos.0 - hx) * (pos.0 - hx) + (pos.1 - hy) * (pos.1 - hy);
-                        let snap_threshold = 14.0;
-// Snap apenas se ainda nÃ£o foi disparado nesta sessÃ£o de hover
-                        if !self.fade_interaction.snap_active
-                            && dist_sq <= snap_threshold * snap_threshold
-                        {
-                            if let Some(window) = &self.window {
-                                use winit::dpi::LogicalPosition;
-                                let _ = window.set_cursor_position(LogicalPosition::new(hx, hy));
-                            }
-                            self.cursor_warp_pending = true;
-                            self.last_cursor = (hx, hy);
-                            self.fade_interaction.snap_active = true;
-                        }
-                    }
-                }
-            }
-        } else {
-            // Cursor saiu do hover â€” reseta o flag para permitir snap novamente
-            self.fade_interaction.snap_active = false;
-        }
+        // (Removido) O 'snap magnético' que teleportava o cursor do SO até o
+        // handle de fade/ganho: ele roubava o arrasto do clip e movia o
+        // ponteiro sozinho quando passava perto do knob no topo do clip.
 
 
 

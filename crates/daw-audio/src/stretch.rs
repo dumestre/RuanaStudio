@@ -1,9 +1,9 @@
 //! Time-stretch de clips de audio: a base do timewarp estilo Cubase.
 //!
-//! Envolve o crate `timestretch` (v0.15.0, robmorgan/timestretch-rs) com as
+//! Envolve o crate `timestretch` (v0.16.0, robmorgan/timestretch-rs) com as
 //! garantias que o motor e o worker precisam:
 //!
-//! - ratio validado/clampado na faixa suportada pelo crate (0.01..=100.0);
+//! - ratio validado/clampado na faixa suportada pelo crate (0.25..=32.0);
 //! - entrada/saida SEMPRE no formato do motor: f32 intercalado, -1.0..1.0;
 //! - ratio 1.0 = passthrough exato (o crate ja faz isso e nos evitamos ate
 //!   a montagem dos parametros);
@@ -15,14 +15,15 @@
 
 use crate::buffer::AudioBuffer;
 use crate::mapped_buffer::AudioBufferKind;
-use timestretch::{StretchError, StretchParams};
+use timestretch::{Parameters, SessionConfig, SessionError, StretchError, TempoRate, render};
 
-/// Minimo/maximo de ratio aceito pelo `timestretch` (`stretch/params.rs`).
-pub const RATIO_MIN: f64 = 0.01;
-pub const RATIO_MAX: f64 = 100.0;
+/// Minimo/maximo de ratio aceito pelo `timestretch` (`DurationRatio`:
+/// 0.25..=32.0, o inverso de `TempoRate`, que vai de 1/32 a 4).
+pub const RATIO_MIN: f64 = 0.25;
+pub const RATIO_MAX: f64 = 32.0;
 
-/// Taxa de amostragem aceita pelo crate.
-pub const RATE_MIN: u32 = 8_000;
+/// Taxa de amostragem aceita pelo crate (`SessionConfig::validate`).
+pub const RATE_MIN: u32 = 32_000;
 pub const RATE_MAX: u32 = 192_000;
 
 /// Clampa um ratio para a faixa suportada.
@@ -45,6 +46,16 @@ pub fn is_identity(ratio: f64) -> bool {
 /// Frames (amostras por canal) de um buffer intercalado.
 pub fn frames_of(samples: usize, channels: u16) -> usize {
     samples / channels.max(1) as usize
+}
+
+/// Traduz o erro de sessao do `timestretch` 0.16 para o erro historico do
+/// wrapper (`StretchError`), preservando a mensagem para o log.
+fn map_session_error(err: SessionError) -> StretchError {
+    match err {
+        SessionError::NonFiniteInput => StretchError::NonFiniteInput,
+        SessionError::InvalidParameter => StretchError::InvalidRatio(format!("timestretch: {err}")),
+        other => StretchError::InvalidFormat(format!("timestretch: {other}")),
+    }
 }
 
 /// Estica `input` (f32 intercalado) por `ratio`.
@@ -72,15 +83,36 @@ pub fn stretch_interleaved(
         return Ok(input.to_vec());
     }
 
-    let channels = channels.max(1);
-    let params = StretchParams::new(ratio)
-        .with_sample_rate(sample_rate.clamp(RATE_MIN, RATE_MAX))
-        .with_channels(channels as u32)
+    // O crate 0.16 so aceita 1 ou 2 canais; o motor usa estereo.
+    let channels = channels.clamp(1, 2);
+
+    if input.len() % channels as usize != 0 {
+        return Err(StretchError::InvalidFormat(format!(
+            "{} amostras nao sao multiplas de {channels} canais",
+            input.len()
+        )));
+    }
+
+    // `TempoRate` e a razao fonte/saida; o nosso `ratio` e saida/fonte.
+    // Como o `ratio` ja foi clampado em 0.25..=32.0, o inverso cai na faixa
+    // valida do crate (1/32..=4).
+    let tempo = TempoRate::new(1.0 / ratio).map_err(map_session_error)?;
+    let rate = sample_rate.clamp(RATE_MIN, RATE_MAX);
+
+    let config = SessionConfig {
+        source_sample_rate: rate,
+        output_sample_rate: rate,
+        channels: channels as usize,
+        // Keylock: altera a duracao e MANTEM o pitch (nao e varispeed).
         // Normalizar mudaria o ganho do clip: o ganho e do clip (`gain_db`)
         // e o motor aplica depois. Aqui o sinal tem de sair como entrou.
-        .with_normalize(false);
+        parameters: Parameters::keylock(tempo),
+        ..SessionConfig::default()
+    };
 
-    timestretch::stretch(input, &params)
+    render(input, config)
+        .map(|rendered| rendered.samples)
+        .map_err(map_session_error)
 }
 
 // ============================================================================
