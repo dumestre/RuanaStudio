@@ -61,6 +61,22 @@ fn main() -> Result<(), slint::PlatformError> {
 
     {
         let ui_weak = ui.as_weak();
+        let versions_dir = paths.versions_dir.clone();
+        ui.on_install_github_tag_requested(move || {
+            start_github_tag_install(ui_weak.clone(), versions_dir.clone(), None);
+        });
+    }
+
+    {
+        let ui_weak = ui.as_weak();
+        let versions_dir = paths.versions_dir.clone();
+        ui.on_update_github_tag_requested(move || {
+            start_github_tag_install(ui_weak.clone(), versions_dir.clone(), None);
+        });
+    }
+
+    {
+        let ui_weak = ui.as_weak();
         ui.on_launch_version_requested(move |path| {
             match versions::launch(Path::new(path.as_str())) {
                 Ok(()) => set_status(&ui_weak, "Ruana Studio iniciado.".to_owned()),
@@ -195,9 +211,58 @@ fn start_github_install(
     }
 }
 
+fn start_github_tag_install(
+    ui: slint::Weak<HubWindow>,
+    versions_dir: PathBuf,
+    _installed: Option<PathBuf>,
+) {
+    if let Some(window) = ui.upgrade() {
+        if window.get_busy() {
+            return;
+        }
+        window.set_busy(true);
+    } else {
+        return;
+    }
+    let operation = "Consultando tags do GitHub e baixando...";
+    set_status(&ui, operation.to_owned());
+
+    let ui_weak = ui.clone();
+    let worker_versions_dir = versions_dir.clone();
+    let spawn = std::thread::Builder::new()
+        .name("ruana-hub-github-tag-updater".to_owned())
+        .spawn(move || {
+            let result = versions::install_latest_github_tag(&worker_versions_dir);
+            let status = match &result {
+                Ok(path) => format!("Tag do GitHub instalada: {}", path.display()),
+                Err(error) => format!("Falha na instalação da tag: {error}"),
+            };
+
+            let dispatch = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = ui_weak.upgrade() {
+                    refresh_all(&ui, &worker_versions_dir);
+                    ui.set_status(status.into());
+                    ui.set_busy(false);
+                }
+            });
+            if let Err(error) = dispatch {
+                eprintln!(
+                    "[ruana-hub] não foi possível publicar o resultado na interface: {error}"
+                );
+            }
+        });
+    if let Err(error) = spawn {
+        set_status(&ui, format!("Não foi possível iniciar o download: {error}"));
+        if let Some(window) = ui.upgrade() {
+            window.set_busy(false);
+        }
+    }
+}
+
 fn refresh_all(ui: &HubWindow, root: &Path) {
     refresh_versions(ui, root);
     refresh_github_releases(ui);
+    refresh_github_tags(ui);
 }
 
 fn refresh_versions(ui: &HubWindow, root: &Path) {
@@ -246,6 +311,29 @@ fn refresh_github_releases(ui: &HubWindow) {
         Err(error) => {
             ui.set_status(format!("Erro ao buscar GitHub Releases: {error}").into());
             ui.set_github_releases(std::rc::Rc::new(slint::VecModel::from(Vec::<GitHubReleaseInfo>::new())).into());
+        }
+    }
+}
+
+fn refresh_github_tags(ui: &HubWindow) {
+    match versions::check_github_tags() {
+        Ok(updates) => {
+            let tags: Vec<GitHubTagInfo> = updates
+                .into_iter()
+                .take(5)
+                .map(|u| GitHubTagInfo {
+                    version: u.version.into(),
+                    release_notes: truncate_notes(&u.release_notes, 200).into(),
+                    asset_size: format_bytes(u.asset_size).into(),
+                })
+                .collect();
+            ui.set_github_tags(
+                std::rc::Rc::new(slint::VecModel::from(tags)).into(),
+            );
+        }
+        Err(error) => {
+            ui.set_status(format!("Erro ao buscar tags do GitHub: {error}").into());
+            ui.set_github_tags(std::rc::Rc::new(slint::VecModel::from(Vec::<GitHubTagInfo>::new())).into());
         }
     }
 }

@@ -13,6 +13,12 @@ export struct GitHubReleaseInfo {
     asset_size: string,
 }
 
+export struct GitHubTagInfo {
+    version: string,
+    release_notes: string,
+    asset_size: string,
+}
+
 component VersionRow inherits Rectangle {
     in property <string> name: "";
     in property <string> path: "";
@@ -134,15 +140,73 @@ component GitHubReleaseRow inherits Rectangle {
     }
 }
 
+component GitHubTagRow inherits Rectangle {
+    in property <string> version: "";
+    in property <string> release_notes: "";
+    in property <string> asset_size: "";
+    in property <bool> busy: false;
+    callback install-requested();
+    callback update-requested();
+
+    height: 80px;
+    background: HubTheme.surface;
+    border-width: 1px;
+    border-color: HubTheme.border;
+    border-radius: 6px;
+
+    VerticalLayout {
+        x: 14px;
+        y: 9px;
+        width: parent.width - 250px;
+        spacing: 4px;
+        Text {
+            text: "Tag do GitHub: " + root.version;
+            color: HubTheme.text-primary;
+            font-size: 13px;
+            font-weight: 600;
+            overflow: elide;
+        }
+        Text {
+            text: root.release_notes;
+            color: HubTheme.text-dim;
+            font-size: 9px;
+            wrap: word-wrap;
+            overflow: elide;
+        }
+    }
+
+    ActionButton {
+        x: parent.width - self.width - 12px;
+        y: (parent.height - self.height) / 2;
+        width: 120px;
+        label: root.busy ? "Baixando..." : "Instalar";
+        primary: true;
+        enabled: !root.busy;
+        clicked => { root.install-requested(); }
+    }
+
+    ActionButton {
+        x: parent.width - self.width - 12px;
+        y: (parent.height - self.height) / 2 + 34px;
+        width: 120px;
+        label: "Atualizar";
+        enabled: !root.busy;
+        clicked => { root.update-requested(); }
+    }
+}
+
 export component VersionsPage inherits Rectangle {
     in property <[HubVersion]> versions: [];
     in property <[GitHubReleaseInfo]> github_releases: [];
+    in property <[GitHubTagInfo]> github_tags: [];
     in-out property <bool> busy: false;
     in-out property <string> selected_source: "channel";
     callback install-version();
     callback install-github();
+    callback install-github-tag();
     callback update-version(string);
     callback update-github();
+    callback update-github-tag();
     callback launch-version(string);
     callback source-changed(string);
 
@@ -177,6 +241,22 @@ export component VersionsPage inherits Rectangle {
                 primary: true;
                 enabled: !root.busy && root.selected_source == "channel";
                 clicked => { root.install-version(); }
+            }
+
+            ActionButton {
+                label: root.busy ? "Baixando..." : "Instalar Release do GitHub";
+                min-width: 180px;
+                primary: true;
+                enabled: !root.busy && root.selected_source == "github";
+                clicked => { root.install-github(); }
+            }
+
+            ActionButton {
+                label: root.busy ? "Baixando..." : "Instalar Tag do GitHub";
+                min-width: 180px;
+                primary: true;
+                enabled: !root.busy && root.selected_source == "github-tag";
+                clicked => { root.install-github-tag(); }
             }
         }
 
@@ -219,6 +299,27 @@ export component VersionsPage inherits Rectangle {
                     busy: root.busy;
                     install-requested() => { root.install-github(); }
                     update-requested() => { root.update-github(); }
+                }
+            }
+        }
+
+        if root.selected_source == "github-tag" : Rectangle {
+            VerticalLayout {
+                spacing: 18px;
+                if root.github_tags.length == 0 : Text {
+                    text: "Nenhuma tag do GitHub encontrada.";
+                    color: HubTheme.text-dim;
+                    font-size: 12px;
+                    wrap: word-wrap;
+                }
+
+                for tag in root.github_tags : GitHubTagRow {
+                    version: tag.version;
+                    release_notes: tag.release_notes;
+                    asset_size: tag.asset_size;
+                    busy: root.busy;
+                    install-requested() => { root.install-github-tag(); }
+                    update-requested() => { root.update-github-tag(); }
                 }
             }
         }

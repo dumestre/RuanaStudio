@@ -1,5 +1,5 @@
 import { HubTheme } from "ui/theme.slint";
-import { HubVersion, GitHubReleaseInfo, VersionsPage } from "ui/modules/versions.slint";
+import { HubVersion, GitHubReleaseInfo, GitHubTagInfo, VersionsPage } from "ui/modules/versions.slint";
 
 export component HubWindow inherits Window {
     title: "Ruana Hub";
@@ -11,6 +11,7 @@ export component HubWindow inherits Window {
 
     in property <[HubVersion]> versions: [];
     in property <[GitHubReleaseInfo]> github_releases: [];
+    in property <[GitHubTagInfo]> github_tags: [];
     in-out property <string> status: "Pronto";
     in-out property <bool> busy: false;
     in-out property <string> selected_source: "channel";
@@ -19,6 +20,8 @@ export component HubWindow inherits Window {
     callback update-test-version-requested(string);
     callback install-github-requested();
     callback update-github-requested();
+    callback install-github-tag-requested();
+    callback update-github-tag-requested();
     callback launch-version-requested(string);
     callback source-changed(string);
 
@@ -66,12 +69,15 @@ export component HubWindow inherits Window {
         VersionsPage {
             versions: root.versions;
             github_releases: root.github_releases;
+            github_tags: root.github_tags;
             busy <=> root.busy;
             selected_source <=> root.selected_source;
             install-version => { root.install-test-version-requested(); }
             install-github => { root.install-github-requested(); }
+            install-github-tag => { root.install-github-tag-requested(); }
             update-version(path) => { root.update-test-version-requested(path); }
             update-github => { root.update-github-requested(); }
+            update-github-tag => { root.update-github-tag-requested(); }
             launch-version(path) => { root.launch-version-requested(path); }
             source-changed(source) => { root.source-changed(source); }
         }

@@ -55,6 +55,20 @@ pub struct GitHubAsset {
     pub size: u64,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct GitHubTag {
+    pub name: String,
+    pub commit: GitHubTagCommit,
+    pub tarball_url: String,
+    pub zipball_url: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GitHubTagCommit {
+    pub sha: String,
+    pub url: String,
+}
+
 #[derive(Debug, Clone)]
 pub enum UpdateSource {
     Channel,
@@ -151,7 +165,47 @@ pub fn check_github_releases() -> io::Result<Vec<AvailableUpdate>> {
     }
     
     use std::cmp::Ordering;
-use version_compare::Cmp;
+    use version_compare::Cmp;
+
+    updates.sort_by(|a, b| {
+        version_compare::compare(&b.version, &a.version)
+            .map(|c| match c {
+                Cmp::Lt | Cmp::Le => Ordering::Less,
+                Cmp::Eq | Cmp::Ne => Ordering::Equal,
+                Cmp::Gt | Cmp::Ge => Ordering::Greater,
+            })
+            .unwrap_or(Ordering::Equal)
+    });
+    
+    Ok(updates)
+}
+
+pub fn check_github_tags() -> io::Result<Vec<AvailableUpdate>> {
+    let client = http_client()?;
+    let response = client
+        .get("https://api.github.com/repos/DJDUM/RuanaStudio/tags")
+        .header("User-Agent", "ruana-hub")
+        .send()
+        .and_then(reqwest::blocking::Response::error_for_status)
+        .map_err(network_error)?;
+    let tags: Vec<GitHubTag> = response.json().map_err(network_error)?;
+    
+    let mut updates = Vec::new();
+    for tag in tags {
+        let version = tag.name.trim_start_matches('v').to_string();
+        // Tentar baixar o zipball da tag como asset
+        updates.push(AvailableUpdate {
+            source: UpdateSource::GitHub,
+            version,
+            download_url: tag.zipball_url.clone(),
+            sha256: None,
+            release_notes: format!("Tag do GitHub: {}", tag.name),
+            asset_size: 0,
+        });
+    }
+    
+    use std::cmp::Ordering;
+    use version_compare::Cmp;
 
     updates.sort_by(|a, b| {
         version_compare::compare(&b.version, &a.version)
@@ -171,6 +225,11 @@ pub fn check_latest_github_release() -> io::Result<Option<AvailableUpdate>> {
     Ok(updates.into_iter().next())
 }
 
+pub fn check_latest_github_tag() -> io::Result<Option<AvailableUpdate>> {
+    let updates = check_github_tags()?;
+    Ok(updates.into_iter().next())
+}
+
 pub fn install_latest_github(root: &Path) -> io::Result<PathBuf> {
     let update = check_latest_github_release()?
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "nenhum release do GitHub encontrado"))?;
@@ -180,6 +239,18 @@ pub fn install_latest_github(root: &Path) -> io::Result<PathBuf> {
 pub fn update_latest_github(root: &Path, installed: &Path) -> io::Result<PathBuf> {
     let update = check_latest_github_release()?
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "nenhum release do GitHub encontrado"))?;
+    install_from_update(root, &update, Some(installed))
+}
+
+pub fn install_latest_github_tag(root: &Path) -> io::Result<PathBuf> {
+    let update = check_latest_github_tag()?
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "nenhuma tag do GitHub encontrada"))?;
+    install_from_update(root, &update, None)
+}
+
+pub fn update_latest_github_tag(root: &Path, installed: &Path) -> io::Result<PathBuf> {
+    let update = check_latest_github_tag()?
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "nenhuma tag do GitHub encontrada"))?;
     install_from_update(root, &update, Some(installed))
 }
 
