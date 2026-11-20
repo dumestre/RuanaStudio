@@ -53,7 +53,9 @@ export component StereoMeter inherits Rectangle {
 
             // Barra principal: envelope de pico.
             Rectangle {
-                x: 0px; y: 0px; 
+                x: 0px; y: 0px;
+                width: parent.width;
+                height: parent.height;
                 background: root.level-color;
                 clip: true;
                 Rectangle {
@@ -112,7 +114,9 @@ export component StereoMeter inherits Rectangle {
 
             // Barra principal: envelope de pico.
             Rectangle {
-                x: 0px; y: 0px; 
+                x: 0px; y: 0px;
+                width: parent.width;
+                height: parent.height;
                 background: root.level-color;
                 clip: true;
                 Rectangle {

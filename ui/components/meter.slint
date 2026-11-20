@@ -69,7 +69,9 @@ export component Meter inherits Rectangle {
     private property <length> fader-gap: 0px;
 
     // Margem para impedir que o conteúdo encoste nas bordas.
-    private property <length> vertical-padding: 12px;
+    // Leve (6px por lado): o medidor aproveita quase toda a altura da
+    // row, sem colar na borda.
+    private property <length> vertical-padding: 6px;
 
     // Área vertical compartilhada por todos os elementos.
     private property <length> meter-height:
