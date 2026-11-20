@@ -1,0 +1,401 @@
+import { Theme } from "../theme.slint";
+
+export component DonationDialog inherits Rectangle {
+
+    in-out property <bool> open: false;
+    callback closed();
+
+    width: 100%;
+    height: 100%;
+    background: transparent;
+
+    // Backdrop escuro com blur simulado
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #000000.with-alpha(0.55);
+        z: 100;
+
+        TouchArea {
+            clicked => {
+                root.open = false;
+                root.closed();
+            }
+        }
+    }
+
+    // Card central
+    if root.open: Rectangle {
+        x: (parent.width - 460px) / 2;
+        y: (parent.height - 560px) / 2;
+        width: 460px;
+        height: 560px;
+        z: 101;
+        border-radius: 20px;
+        clip: true;
+
+        // Gradiente de fundo do card
+        Rectangle {
+            width: parent.width;
+            height: parent.height;
+            border-radius: 20px;
+            background: #1E1B26;
+            border-width: 1px;
+            border-color: Theme.accent.with-alpha(0.35);
+        }
+
+        // Cabeçalho
+        Rectangle {
+            x: 24px;
+            y: 24px;
+            width: parent.width - 48px;
+            height: 64px;
+
+            Text {
+                x: 0px;
+                y: 0px;
+                text: "Apoie o Ruana Studio";
+                color: Theme.text-primary;
+                font-size: 20px;
+                font-weight: 700;
+            }
+
+            Text {
+                x: 0px;
+                y: 26px;
+                width: parent.width;
+                text: "Cada doação ajuda a manter o projeto livre e aberto";
+                color: Theme.text-dim;
+                font-size: 11px;
+                horizontal-alignment: center;
+            }
+        }
+
+        // Botão fechar (X)
+        Rectangle {
+            x: parent.width - 44px;
+            y: 20px;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            background: Theme.surface.with-alpha(0.6);
+
+            TouchArea {
+                clicked => {
+                    root.open = false;
+                    root.closed();
+                }
+            }
+
+            Text {
+                x: 0px;
+                y: -2px;
+                width: parent.width;
+                height: parent.height;
+                text: "✕";
+                color: Theme.text-primary;
+                font-size: 16px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+
+        // Conteúdo: abas de doação
+        VerticalLayout {
+            x: 24px;
+            y: 104px;
+            width: parent.width - 48px;
+            spacing: 16px;
+
+            // ---------- WhatsApp ----------
+            Rectangle {
+                width: parent.width;
+                height: 84px;
+                border-radius: 12px;
+                background: Theme.surface.with-alpha(0.4);
+                border-width: 1px;
+                border-color: Theme.border.with-alpha(0.3);
+
+                HorizontalLayout {
+                    spacing: 12px;
+                    padding-left: 14px;
+                    padding-right: 12px;
+                    cross-axis-alignment: CrossAxisAlignment.center;
+                    height: 100%;
+
+                    Rectangle {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 10px;
+                        background: #25D366;
+
+                        Text {
+                            width: parent.width;
+                            height: parent.height;
+                            text: "💚";
+                            color: #FFFFFF;
+                            font-size: 18px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 4px;
+
+                        Text {
+                            text: "WhatsApp";
+                            color: Theme.text-primary;
+                            font-size: 13px;
+                            font-weight: 600;
+                        }
+
+                        Text {
+                            text: "55 11 98252-9036";
+                            color: #25D366;
+                            font-size: 12px;
+                            font-weight: 600;
+                        }
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    Rectangle {
+                        width: 88px;
+                        height: 32px;
+                        border-radius: 6px;
+                        background: #25D366.with-alpha(0.15);
+
+                        TouchArea {
+                            width: parent.width;
+                            height: parent.height;
+
+                            clicked => {
+                                // TODO: abrir link do WhatsApp
+                            }
+                        }
+
+                        Text {
+                            width: parent.width;
+                            height: parent.height;
+                            text: "Abrir WhatsApp";
+                            color: #25D366;
+                            font-size: 10px;
+                            font-weight: 700;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            z: 1;
+                        }
+                    }
+                }
+            }
+
+            // ---------- Pix ----------
+            Rectangle {
+                width: parent.width;
+                height: 84px;
+                border-radius: 12px;
+                background: Theme.surface.with-alpha(0.4);
+                border-width: 1px;
+                border-color: Theme.border.with-alpha(0.3);
+
+                HorizontalLayout {
+                    spacing: 12px;
+                    padding-left: 14px;
+                    padding-right: 12px;
+                    cross-axis-alignment: CrossAxisAlignment.center;
+                    height: 100%;
+
+                    Rectangle {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 10px;
+                        background: Theme.accent.with-alpha(0.15);
+
+                        Text {
+                            width: parent.width;
+                            height: parent.height;
+                            text: "💰";
+                            color: Theme.accent;
+                            font-size: 18px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 4px;
+
+                        Text {
+                            text: "Pix";
+                            color: Theme.text-primary;
+                            font-size: 13px;
+                            font-weight: 600;
+                        }
+
+                        Text {
+                            text: "ruana@studio.com";
+                            color: Theme.accent;
+                            font-size: 12px;
+                            font-weight: 600;
+                        }
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    Rectangle {
+                        width: 88px;
+                        height: 32px;
+                        border-radius: 6px;
+                        background: Theme.accent.with-alpha(0.15);
+
+                        TouchArea {
+                            width: parent.width;
+                            height: parent.height;
+
+                            clicked => {
+                                // TODO: copiar chave pix
+                            }
+                        }
+
+                        Text {
+                            width: parent.width;
+                            height: parent.height;
+                            text: "Copiar Chave";
+                            color: Theme.accent;
+                            font-size: 10px;
+                            font-weight: 700;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            z: 1;
+                        }
+                    }
+                }
+            }
+
+            // ---------- PayPal ----------
+            Rectangle {
+                width: parent.width;
+                height: 84px;
+                border-radius: 12px;
+                background: Theme.surface.with-alpha(0.4);
+                border-width: 1px;
+                border-color: Theme.border.with-alpha(0.3);
+                opacity: 0.5;
+
+                HorizontalLayout {
+                    spacing: 12px;
+                    padding-left: 14px;
+                    padding-right: 12px;
+                    cross-axis-alignment: CrossAxisAlignment.center;
+                    height: 100%;
+
+                    Rectangle {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 10px;
+                        background: Theme.text-dim.with-alpha(0.3);
+
+                        Text {
+                            width: parent.width;
+                            height: parent.height;
+                            text: "🅿️";
+                            color: Theme.text-dim;
+                            font-size: 16px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 4px;
+
+                        Text {
+                            text: "PayPal";
+                            color: Theme.text-primary.transparentize(0.3);
+                            font-size: 13px;
+                            font-weight: 600;
+                        }
+
+                        Text {
+                            text: "Em breve";
+                            color: Theme.text-dim.transparentize(0.3);
+                            font-size: 12px;
+                            font-weight: 600;
+                        }
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    Rectangle {
+                        width: 88px;
+                        height: 32px;
+                        border-radius: 6px;
+                        background: Theme.text-dim.with-alpha(0.1);
+
+                        TouchArea {
+                            width: parent.width;
+                            height: parent.height;
+                            enabled: false;
+
+                            clicked => {}
+                        }
+
+                        Text {
+                            width: parent.width;
+                            height: parent.height;
+                            text: "Em breve";
+                            color: Theme.text-dim.transparentize(0.3);
+                            font-size: 10px;
+                            font-weight: 700;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            z: 1;
+                        }
+                    }
+                }
+            }
+
+            // ---------- Rodapé ----------
+            Rectangle {
+                width: parent.width;
+                height: 44px;
+                border-radius: 10px;
+                background: Theme.surface.with-alpha(0.2);
+                border-width: 1px;
+                border-color: Theme.border.with-alpha(0.2);
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    padding-left: 14px;
+                    padding-right: 12px;
+                    cross-axis-alignment: CrossAxisAlignment.center;
+                    height: 100%;
+
+                    Text {
+                        width: parent.width;
+                        height: parent.height;
+                        text: "❤️";
+                        color: Theme.accent.with-alpha(0.6);
+                        font-size: 16px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    Text {
+                        text: "Obrigado pelo apoio!";
+                        color: Theme.text-dim;
+                        font-size: 11px;
+                        font-weight: 600;
+                    }
+                }
+            }
+        }
+    }
+}

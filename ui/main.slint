@@ -8,6 +8,7 @@ import { FloatPanel } from "windows/float_panel.slint";
 import { ContextMenu, ClipContextMenuState } from "components/context_menu.slint";
 import { RadialMenu, PieMenuState } from "components/radial_menu.slint";
 import { TimelineMetrics, SamplerMetrics, BeatMetrics } from "timeline/clip_drag/clip_drag_state.slint";
+import { DonationDialog } from "components/donation_dialog.slint";
 
 export { FloatPanel }
 export { BrowserFileEntry }
@@ -510,6 +511,7 @@ export component MainWindow inherits Window {
     callback sampler-load-requested(int);
     callback sampler-sample-dropped(string, string);
     callback preview-play(string);
+    callback donation-requested();
     callback debug-log(string);
 
 
@@ -1319,5 +1321,22 @@ export component MainWindow inherits Window {
         }
     }
 
+    // =====================================================
+    // DOAÇÃO
+    // =====================================================
+
+    in-out property <bool> donation-open: false;
+
+    donation-requested() => {
+        root.donation-open = true;
+    }
+
+    DonationDialog {
+        open: root.donation-open;
+        closed => {
+            root.donation-open = false;
+        }
+    }
 
 }
+
