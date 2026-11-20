@@ -125,7 +125,7 @@ pub fn build_clip_instances(
         let base =
             clip_color(clip, t);
 
-        let (x, y, w, _h) =
+        let (x, y, w, h) =
             clip_rect(clip, m);
 
         if w <= 0.0
@@ -156,7 +156,7 @@ pub fn build_clip_instances(
                 x < mx + mw
                     && x + w > mx
                     && y < my + mh
-                    && y + m.row_height > my
+                    && y + h > my
             } else {
                 false
             };
@@ -199,7 +199,7 @@ pub fn build_clip_instances(
             &m.wave_segments,
             idx,
             t,
-            m.row_height,
+            h,
             wave_natural_w,
         );
 
@@ -219,7 +219,7 @@ pub fn build_clip_instances(
                 && inter.selected[idx]
                 || in_marquee)
         {
-            push_clip_selection_outline(&mut instances, x, y, draw_w, m.row_height, t);
+            push_clip_selection_outline(&mut instances, x, y, draw_w, h, t);
         }
 
         // Seam.
@@ -257,7 +257,7 @@ pub fn build_clip_instances(
                 let mut dy = y;
 
                 while dy + dash_h
-                    <= y + m.row_height
+                    <= y + h
                 {
                     instances.push(
                         RectInstance {
@@ -412,7 +412,7 @@ pub fn build_clip_instances(
                     &m.wave_segments,
                     idx,
                     t,
-                    m.row_height,
+                    m.track_height(live.track_index),
                     wave_natural_w,
                 );
 
@@ -431,7 +431,7 @@ pub fn build_clip_instances(
                     x,
                     y,
                     draw_w,
-                    m.row_height,
+                    m.track_height(live.track_index),
                     t,
                 );
             }
@@ -560,7 +560,7 @@ pub fn build_clip_instances(
                             &m.wave_segments,
                             *gi,
                             t,
-                            m.row_height,
+                            m.track_height(live.track_index),
                             wave_natural_w,
                         );
 
@@ -579,7 +579,7 @@ pub fn build_clip_instances(
                             x,
                             y,
                             draw_w,
-                            m.row_height,
+                            m.track_height(live.track_index),
                             t,
                         );
                     }
@@ -668,7 +668,7 @@ pub fn build_clip_instances(
                     &m.wave_segments,
                     clips.len(),
                     t,
-                    m.row_height,
+                    m.track_height(temp_clip.track_index),
                     w,
                 );
             }

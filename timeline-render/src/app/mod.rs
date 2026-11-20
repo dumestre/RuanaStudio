@@ -61,6 +61,13 @@ use crate::waveform;
 // regenerar o buffer EM CONJUNTO com `wave_segments` — os dois andam juntos.
 pub const WAVE_PPB: f32 = 40.0;
 
+/// Altura base de uma track (px, zoom 1.0). Também é o valor de fallback
+/// quando `App::track_heights` não tem entrada para o índice.
+pub const TRACK_BASE_HEIGHT: f32 = 64.0;
+/// Limites do arrasto do divisor no track panel (px, zoom 1.0).
+pub const TRACK_MIN_HEIGHT: f32 = 24.0;
+pub const TRACK_MAX_HEIGHT: f32 = 400.0;
+
 /// Snapshot do projeto para undo/redo: clips + fades (estado editável).
 #[derive(Clone)]
 pub struct TimelineSnapshot {
@@ -271,6 +278,10 @@ pub struct App {
     pub show_tempo_track: bool,
     /// Altura fixa da tempo track (px lógicos).
     pub tempo_track_height: f32,
+    /// Altura individual de cada track, em px com zoom 1.0 (base
+    /// `TRACK_BASE_HEIGHT`). Índices ausentes caem no valor base. O divisor
+    /// do track panel edita esta lista; o render e o hit-test a consultam.
+    pub track_heights: Vec<f32>,
     /// Estado de interação da tempo track (hover/arrasto de pontos de tempo).
     pub tempo_track_inter: tempo_track::TempoTrackInteraction,
     /// Callback de write-back para tempo track (mesmo que timewarp).
@@ -977,6 +988,7 @@ transport,
             // Tempo Track (faixa de tempo no topo da timeline).
             show_tempo_track: false,
             tempo_track_height: tempo_track::TEMPO_TRACK_HEIGHT,
+        track_heights: Vec::new(),
             tempo_track_inter: tempo_track::TempoTrackInteraction::new(),
             tempo_track_write_back: None,
             tempo_track_commit: None,
@@ -1370,13 +1382,73 @@ transport,
         self.ruler_px + self.tempo_track_h()
     }
 
+    /// Altura de UMA track, já com o zoom vertical aplicado.
+    pub fn track_height_at(&self, track: usize) -> f32 {
+        let base = self
+            .track_heights
+            .get(track)
+            .copied()
+            .unwrap_or(TRACK_BASE_HEIGHT)
+            .clamp(TRACK_MIN_HEIGHT, TRACK_MAX_HEIGHT);
+        base * self.zoom_y.max(0.001)
+    }
+
+    /// Y do topo da track `track`, em coordenadas de CONTEÚDO (sem scroll,
+    /// já abaixo de régua + tempo track — some `content_top()` para obter a
+    /// posição de janela).
+    pub fn track_top_at(&self, track: usize) -> f32 {
+        (0..track).map(|i| self.track_height_at(i)).sum()
+    }
+
+    /// Track sob um Y de conteúdo (0 = topo da primeira track). Devolve o
+    /// índice e o offset local dentro dela.
+    pub fn track_at_content_y(&self, y: f32) -> (usize, f32) {
+        let mut acc = 0.0;
+        let mut i = 0usize;
+        loop {
+            let h = self.track_height_at(i);
+            if y < acc + h || i > 4096 {
+                return (i, y - acc);
+            }
+            acc += h;
+            i += 1;
+        }
+    }
+
+    /// Altura total ocupada por `count` tracks.
+    pub fn tracks_total_height(&self, count: usize) -> f32 {
+        (0..count.max(1)).map(|i| self.track_height_at(i)).sum()
+    }
+
+    /// Preenche o layout de tracks de um `ClipMetrics` até `max_track`
+    /// (inclusive), com zoom já aplicado.
+    pub fn fill_track_layout(&self, max_track: usize, m: &mut clips::ClipMetrics) {
+        m.track_tops.clear();
+        m.track_heights.clear();
+        let mut acc = 0.0;
+        for i in 0..=max_track {
+            m.track_tops.push(acc);
+            let h = self.track_height_at(i);
+            m.track_heights.push(h);
+            acc += h;
+        }
+    }
+
     pub fn clip_metrics(&self) -> clips::ClipMetrics {
         let view = self.input_view_size();
-        let row_height = 64.0 * self.zoom_y.max(0.001);
+        let row_height = TRACK_BASE_HEIGHT * self.zoom_y.max(0.001);
         let content_top = self.content_top();
         let max_visible =
             ((view.1 - content_top) / row_height).floor().max(0.0) as usize;
-        clips::ClipMetrics {
+        let max_track = self
+            .clips
+            .iter()
+            .map(|c| c.track_index)
+            .max()
+            .unwrap_or(0)
+            .max(max_visible)
+            .max(self.track_heights.len().saturating_sub(1));
+        let mut m = clips::ClipMetrics {
             px_per_beat: self.px_per_beat,
             wave_segments: self.wave_segments.clone(),
             row_height,
@@ -1384,24 +1456,21 @@ transport,
             scroll_y: self.scroll_y,
             ruler_px: content_top,
             theme: self.theme.clamp(0, 6) as usize,
-            max_track: self
-                .clips
-                .iter()
-                .map(|c| c.track_index)
-                .max()
-                .unwrap_or(0)
-                .max(max_visible),
-        }
+            max_track,
+            track_tops: Vec::new(),
+            track_heights: Vec::new(),
+        };
+        self.fill_track_layout(max_track, &mut m);
+        m
     }
 
     /// Trava a rolagem vertical para que todos os clips fiquem visíveis:
     /// se o conteúdo cabe na viewport, trava em 0 (grudado no topo); senão,
     /// limita o scroll ao máximo necessário para ver o último clip.
     pub fn clamp_scroll_y(&mut self, height: f32) {
-        let row_height = 64.0 * self.zoom_y.max(0.001);
         let max_track = self.clips.iter().map(|c| c.track_index).max().unwrap_or(0);
         // Sempre mostra ao menos 1 track (uma track padrão visível).
-        let content_h = (max_track as f32 + 1.0) * row_height;
+        let content_h = self.tracks_total_height(max_track + 1);
         let view_h = (height - self.content_top() - self.time_ruler_h).max(0.0);
         if content_h <= view_h {
             self.scroll_y = 0.0;

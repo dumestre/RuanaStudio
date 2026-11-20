@@ -592,8 +592,11 @@ impl App {
 
         // Separadores das tracks regulares (deslocados pela tempo track)
         for tr in 0..track_count {
-            let y = self.ruler_px + tempo_track_h + (tr as f32 + 1.0) * row_height - self.scroll_y;
-            if y < self.ruler_px + tempo_track_h || y > view_bottom { continue; }
+            let y = self.content_top()
+                + self.track_top_at(tr)
+                + self.track_height_at(tr)
+                - self.scroll_y;
+            if y < self.content_top() || y > view_bottom { continue; }
             instances.push(RectInstance {
                 x: 0.0, y, w: width, h: 1.0,
                 color: rgba(palette::BASE[t], 150),
@@ -610,7 +613,7 @@ impl App {
         } else {
             0.0
         };
-        let cm = clips::ClipMetrics {
+        let mut cm = clips::ClipMetrics {
             px_per_beat: self.px_per_beat,
             wave_segments: self.wave_segments.clone(),
             row_height,
@@ -619,7 +622,11 @@ impl App {
             ruler_px: self.ruler_px + tempo_track_h,
             theme: t,
             max_track: self.clips.iter().map(|c| c.track_index).max().unwrap_or(0),
+            track_tops: Vec::new(),
+            track_heights: Vec::new(),
         };
+        let cm_max_track = cm.max_track;
+        self.fill_track_layout(cm_max_track, &mut cm);
         let mut display_clips;
         let clips_view: &[clips::ClipDemo] =
             if let Some((clip_idx, marker_idx, offset)) = self.timewarp_preview_marker {
@@ -702,11 +709,12 @@ impl App {
 
         // Renderiza preview de áudio arrastado (se houver)
         if let Some(preview) = &self.drop_preview {
-            let row_height = 64.0 * self.zoom_y;
             let x = preview.beat * self.px_per_beat - self.scroll_x;
-            let y = self.content_top() + preview.track as f32 * row_height - self.scroll_y;
+            let y = self.content_top()
+                + self.track_top_at(preview.track)
+                - self.scroll_y;
             let w = if preview.len_beats > 0.0 { preview.len_beats * self.px_per_beat } else { 4.0 * self.px_per_beat };
-            let h = row_height;
+            let h = self.track_height_at(preview.track);
             let col = rgba(palette::ACCENT[t], 80);
             instances.push(RectInstance {
                 x,

@@ -97,6 +97,11 @@ pub struct ClipMetrics {
     pub wave_segments: Vec<(u32, u32)>,
 
     pub row_height: f32,
+    /// Topo de cada track em coordenadas de conteúdo (sem scroll), já com
+    /// zoom aplicado. Preenchido por `App::fill_track_layout`.
+    pub track_tops: Vec<f32>,
+    /// Altura de cada track, já com zoom aplicado.
+    pub track_heights: Vec<f32>,
     pub scroll_x: f32,
     pub scroll_y: f32,
     pub ruler_px: f32,
@@ -134,23 +139,52 @@ impl ClipMetrics {
             0.0
         };
 
-        let track = if self.row_height > 0.0 {
-            (content_y / self.row_height).floor().max(0.0) as usize
-        } else {
-            0
-        };
+        (beat, self.track_at_content_y(content_y))
+    }
 
-        (beat, track)
+    /// Topo da track `i` em conteúdo (fallback: grade uniforme).
+    pub fn track_top(&self, i: usize) -> f32 {
+        self.track_tops
+            .get(i)
+            .copied()
+            .unwrap_or(i as f32 * self.row_height)
+    }
+
+    /// Altura da track `i` (fallback: `row_height`).
+    pub fn track_height(&self, i: usize) -> f32 {
+        self.track_heights
+            .get(i)
+            .copied()
+            .unwrap_or(self.row_height)
+    }
+
+    /// Índice da track sob um Y de conteúdo.
+    pub fn track_at_content_y(&self, y: f32) -> usize {
+        let n = self.track_tops.len().min(self.track_heights.len());
+        if n == 0 {
+            return if self.row_height > 0.0 {
+                (y / self.row_height).floor().max(0.0) as usize
+            } else {
+                0
+            };
+        }
+        for i in 0..n {
+            if y < self.track_tops[i] + self.track_heights[i] {
+                return i;
+            }
+        }
+        // Depois da última track conhecida: extrapola com a altura dela.
+        let last = n - 1;
+        let h = self.track_heights[last].max(1.0);
+        let extra = ((y - self.track_tops[last]) / h).floor().max(0.0) as usize;
+        last + extra
     }
 
     /// Menor índice de track que ainda fica visível abaixo da régua com o
     /// scroll atual. Usado para impedir que clips arrastados "saiam para
     /// fora" pelo topo (atrás da régua) quando a timeline está rolada.
     pub fn visible_min_track(&self) -> usize {
-        if self.row_height <= 0.0 {
-            return 0;
-        }
-        (self.scroll_y / self.row_height).ceil() as usize
+        self.track_at_content_y(self.scroll_y)
     }
 }
 
@@ -167,8 +201,8 @@ pub fn clip_rect(
 
     let y =
         m.ruler_px
-        + clip.track_index as f32 * m.row_height
+        + m.track_top(clip.track_index)
         - m.scroll_y;
 
-    (x, y, w, m.row_height)
+    (x, y, w, m.track_height(clip.track_index))
 }

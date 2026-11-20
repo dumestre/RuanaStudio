@@ -85,6 +85,11 @@ export component TimelineHeader inherits Rectangle {
 
     // Tempo track (opcional: liga/desliga no header, logo abaixo da régua)
     in-out property <bool> show-tempo-track: false;
+
+    // Altura individual das tracks (px lógicos) + total, publicados pelo
+    // host a partir da engine. Linhas sem entrada usam 64px * zoom-y.
+    in property <[length]> track-heights: [];
+    in property <length> tracks-total-height: 0px;
     in property <length> tempo-track-height: 60px;
 
     // Automation lanes
@@ -120,6 +125,9 @@ export component TimelineHeader inherits Rectangle {
     // Automation lane callbacks
     callback automation-param-changed(int, int); // track_index, param_id
     callback automation-lane-toggled(int, bool); // track_index, enabled
+
+    // Divisor da track arrastado (índice, nova altura lógica).
+    callback track-height-changed(int, float);
 
 
     // =====================================================
@@ -346,7 +354,9 @@ export component TimelineHeader inherits Rectangle {
 
             width: parent.width;
 
-            height: root.track-names.length * 64px * root.zoom-y;
+            height: root.tracks-total-height > 0px
+                ? root.tracks-total-height
+                : root.track-names.length * 64px * root.zoom-y;
 
         
 
@@ -365,7 +375,9 @@ export component TimelineHeader inherits Rectangle {
 
                     width: parent.width;
 
-                    height: 64px * root.zoom-y;
+                    height: i < root.track-heights.length
+                        ? root.track-heights[i]
+                        : 64px * root.zoom-y;
 
 
                     // -------------------------------------
@@ -472,6 +484,11 @@ export component TimelineHeader inherits Rectangle {
                     // Repassa o zoom vertical calculado na row.
                     zoom-y-scrolled(new-zoom-y) => {
                         root.zoom-y-scrolled(new-zoom-y);
+                    }
+
+                    // Divisor da row arrastado (altura individual).
+                    height-changed(index, new-height) => {
+                        root.track-height-changed(index, new-height);
                     }
 
                     volume-changed(index, pos) => {

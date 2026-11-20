@@ -367,9 +367,16 @@ impl App {
                 let old_zy = self.zoom_y;
                 let new_zy = (old_zy + dy * 0.01).clamp(0.25, 6.0);
                 let content_top = self.content_top();
-                let row_under = (my - content_top + scroll_y) / (64.0 * old_zy.max(0.01)).max(0.01);
+                // Ancoragem: mantém sob o cursor a MESMA fração da track
+                // (alturas individuais podem diferir da grade de 64px).
+                let content_y = (my - content_top + scroll_y).max(0.0);
+                let (track_under, local) = self.track_at_content_y(content_y);
+                let old_h = self.track_height_at(track_under).max(0.01);
+                let frac = (local / old_h).clamp(0.0, 1.0);
                 self.zoom_y = new_zy;
-                self.scroll_y = (row_under * 64.0 * new_zy - (my - content_top)).max(0.0);
+                let new_local = frac * self.track_height_at(track_under);
+                self.scroll_y =
+                    (self.track_top_at(track_under) + new_local - (my - content_top)).max(0.0);
             }
         } else {
             if in_pr_area {
@@ -677,9 +684,8 @@ impl App {
         let clip_x = clip.beat * self.px_per_beat;
         self.scroll_x = (clip_x - width * 0.5).max(0.0);
 
-        let row_height = 64.0 * self.zoom_y.max(0.001);
         let view_h = (self.size.1 as f32 - self.content_top() - self.time_ruler_h).max(0.0);
-        let clip_y = clip.track_index as f32 * row_height;
+        let clip_y = self.track_top_at(clip.track_index);
         self.scroll_y = (clip_y - view_h * 0.5).max(0.0);
     }
 
@@ -898,10 +904,8 @@ impl App {
         } else {
             beat
         }.max(0.0);
-        let row_height = 64.0 * self.zoom_y.max(0.001);
-        let track = ((pos.1 - self.content_top() + self.scroll_y) / row_height)
-            .floor()
-            .max(0.0) as usize;
+        let content_y = (pos.1 - self.content_top() + self.scroll_y).max(0.0);
+        let (track, _) = self.track_at_content_y(content_y);
         (snapped_beat, track)
     }
 

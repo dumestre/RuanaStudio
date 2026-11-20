@@ -90,6 +90,9 @@ pub struct EngineBridge {
     pub track_colors_model: Option<Rc<slint::VecModel<i32>>>,
     /// Modelos que o "Abrir projeto" precisa recarregar no lugar.
     pub tracks_model: Option<Rc<slint::VecModel<slint::SharedString>>>,
+    /// Última lista de alturas (px lógicos) publicada no Slint. Evita
+    /// reescrever o modelo de alturas a cada frame.
+    pub published_track_heights: Vec<f32>,
     pub mixer_models: Option<Rc<RefCell<crate::mixer::MixerModels>>>,
 }
 
@@ -238,6 +241,7 @@ impl EngineBridge {
             clips_model: None,
             track_colors_model: None,
             tracks_model: None,
+            published_track_heights: Vec::new(),
             mixer_models: None,
         }
     }
@@ -358,6 +362,26 @@ impl EngineBridge {
             ui.set_timeline_px_per_beat(ppb);
             ui.set_timeline_row_height(row_h);
             ui.set_timeline_ruler_height(ruler_h);
+
+            // Alturas individuais das tracks (divisor do track panel).
+            // Publicadas em px LÓGICOS; a engine guarda px com zoom 1.0.
+            let track_count = slint::Model::row_count(&ui.get_track_names());
+            let heights_logical: Vec<f32> = (0..track_count)
+                .map(|i| self.engine.track_height_at(i) / ls)
+                .collect();
+            let changed = heights_logical.len() != self.published_track_heights.len()
+                || heights_logical
+                    .iter()
+                    .zip(&self.published_track_heights)
+                    .any(|(a, b)| (a - b).abs() > 0.25);
+            if changed {
+                let total: f32 = heights_logical.iter().sum();
+                ui.set_track_heights(slint::ModelRc::new(slint::VecModel::from(
+                    heights_logical.clone(),
+                )));
+                ui.set_tracks_total_height(total);
+                self.published_track_heights = heights_logical;
+            }
 
             let m = <crate::TimelineMetrics as slint::Global<crate::MainWindow>>::get(&ui);
             m.set_timeline_abs_x(abs_x);
@@ -622,6 +646,28 @@ pub fn install_engine_callbacks(
     ui: &MainWindow,
     bridge: Rc<RefCell<EngineBridge>>,
 ) {
+    // ---- ALTURA DE TRACK (divisor do track panel) ---------------------
+    {
+        let b = bridge.clone();
+        ui.on_track_height_changed(move |index, height| {
+            let mut b = b.borrow_mut();
+            let i = index.max(0) as usize;
+            if b.engine.track_heights.len() <= i {
+                b.engine.track_heights
+                    .resize(i + 1, timeline_render::app::TRACK_BASE_HEIGHT);
+            }
+            // A UI manda px LÓGICOS; a engine guarda px com zoom 1.0.
+            let zy = b.engine.zoom_y.max(0.001);
+            let px = (height * b.scale / zy).clamp(
+                timeline_render::app::TRACK_MIN_HEIGHT,
+                timeline_render::app::TRACK_MAX_HEIGHT,
+            );
+            b.engine.track_heights[i] = px;
+            b.published_track_heights.clear();
+            b.dirty = true;
+        });
+    }
+
     // ---- PONTEIRO: DOWN ----------------------------------------------
     {
         let b = bridge.clone();
@@ -650,11 +696,12 @@ pub fn install_engine_callbacks(
                     }
                     // Shift+Click (sem arrasto) = colar clipboard na posição
                     if shift {
+                        let (track, _) = engine.track_at_content_y(
+                            (py - engine.content_top() + engine.scroll_y).max(0.0),
+                        );
                         engine.paste_at_beat(
                             ((px + engine.scroll_x) / engine.px_per_beat.max(0.001)).max(0.0),
-                            ((py - engine.content_top() + engine.scroll_y) / (64.0 * engine.zoom_y.max(0.001)))
-                                .floor()
-                                .max(0.0) as usize,
+                            track,
                         );
                     } else {
                         engine.handle_primary_button(ButtonState::Pressed, (px, py));

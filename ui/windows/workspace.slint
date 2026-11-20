@@ -154,6 +154,11 @@ export component Workspace inherits Rectangle {
     // Tempo track (faixa de BPM). O host sincroniza com o estado da engine.
     in-out property <bool> show-tempo-track: false;
 
+    // Altura individual das tracks (px lógicos) + total, publicados pelo
+    // host. O divisor do track panel emite `track-height-changed`.
+    in-out property <[length]> track-heights: [];
+    in-out property <length> tracks-total-height: 0px;
+
     in-out property <[ClipData]> clips: [
         {
             id: 0,
@@ -383,6 +388,9 @@ export component Workspace inherits Rectangle {
         timeline.canvas-area-height;
 
     callback timeline-canvas-render-requested();
+
+    // Divisor do track panel: índice da track + nova altura (px lógicos).
+    callback track-height-changed(int, float);
 
     // Eventos crus → engine wgpu headless do timeline-render (Fase 3).
     callback engine-pointer-down(float, float, int, bool, bool, bool);
@@ -1140,6 +1148,15 @@ export component Workspace inherits Rectangle {
                             // host lê a propriedade a cada frame)
                             show-tempo-track <=>
                                 root.show-tempo-track;
+
+                            track-heights:
+                                root.track-heights;
+                            tracks-total-height:
+                                root.tracks-total-height;
+
+                            track-height-changed(index, height) => {
+                                root.track-height-changed(index, height);
+                            }
 
                             // Automation lanes
                             show-automation-lanes:

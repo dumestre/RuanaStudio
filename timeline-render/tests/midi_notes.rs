@@ -43,6 +43,8 @@ fn metrics() -> ClipMetrics {
         px_per_beat: 60.0,
         wave_segments: Vec::new(),
         row_height: 64.0,
+        track_tops: vec![0.0, 64.0],
+        track_heights: vec![64.0, 64.0],
         scroll_x: 0.0,
         scroll_y: 0.0,
         ruler_px: 24.0,

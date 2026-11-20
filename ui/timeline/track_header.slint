@@ -52,6 +52,9 @@ private property <float> zoom-accum: 0.0;
 callback clicked(int);
 callback automation-clicked(int);
 
+// Altura da row arrastada pelo divisor inferior (índice, altura lógica).
+callback height-changed(int, float);
+
 // M/S/R já com o valor NOVO (1.0 = ligado, 0.0 = desligado).
 //
 // O botão calcula o valor antes de emitir, em vez de mandar um
@@ -528,6 +531,42 @@ Meter {
 
     clip-cleared(ch) => {
         root.clip-cleared(ch);
+    }
+}
+
+// ============================================================
+// DIVISOR DE ALTURA
+//
+// Faixa fina no pé da row. O arrasto reporta a NOVA altura em px
+// lógicos; quem manda no layout é o host (engine), que devolve o
+// valor pelo modelo `track-heights`.
+//
+// A posição do cursor é medida em coordenadas de JANELA
+// (`absolute-position + mouse-y`) porque o próprio divisor se
+// desloca quando a row cresce — medir dentro dele daria delta
+// zero e a row nunca mudaria.
+// ============================================================
+
+divider := TouchArea {
+    x: 0;
+    y: root.height - 5px;
+    width: root.width;
+    height: 5px;
+
+    mouse-cursor: ns-resize;
+
+    private property <length> press-wy: 0px;
+    private property <length> start-h: 0px;
+
+    pointer-event(ev) => {
+        if (ev.kind == PointerEventKind.down) {
+            self.press-wy = self.absolute-position.y + self.mouse-y;
+            self.start-h = root.height;
+        } else if (ev.kind == PointerEventKind.move && self.pressed) {
+            let wy = self.absolute-position.y + self.mouse-y;
+            let h = self.start-h + (wy - self.press-wy);
+            root.height-changed(root.track-index, max(24px, h) / 1px);
+        }
     }
 }
 }

@@ -344,6 +344,12 @@ export component MainWindow inherits Window {
     // do estado; o host sincroniza esta propriedade a cada frame.
     in-out property <bool> show-tempo-track: false;
 
+    // Altura individual das tracks (px lógicos). Publicada pelo host a
+    // partir da engine; o divisor do track panel devolve mudanças pelo
+    // callback `track-height-changed`.
+    in-out property <[length]> track-heights: [];
+    in-out property <length> tracks-total-height: 0px;
+
 
     // =====================================================
     // CALLBACKS
@@ -392,6 +398,10 @@ export component MainWindow inherits Window {
     callback window-drag-finished();
 
     callback add-track-requested(string);
+
+    // Divisor do track panel arrastado: índice da track + nova altura
+    // em px lógicos. O host converte para px da engine (zoom 1.0).
+    callback track-height-changed(int, float);
 
     callback clip-dropped(int, float, string, bool, string);
 
@@ -929,6 +939,8 @@ export component MainWindow inherits Window {
             track-colors <=> root.track-colors;
             show-automation-lanes <=> root.show-automation-lanes;
             show-tempo-track <=> root.show-tempo-track;
+            track-heights <=> root.track-heights;
+            tracks-total-height <=> root.tracks-total-height;
             automation-lane-height <=> root.automation-lane-height;
             automation-params <=> root.automation-params;
             clips <=> root.clips;
@@ -974,6 +986,7 @@ export component MainWindow inherits Window {
             seek-to(beat) => { root.seek-to(beat); }
             set-bpm(bpm) => { root.set-bpm(bpm); }
             add-track-requested(type) => { root.add-track-requested(type); }
+            track-height-changed(index, height) => { root.track-height-changed(index, height); }
             clip-slice-requested(id, position) => { root.clip-slice-requested(id, position); }
             clip-glue-requested(id) => { root.clip-glue-requested(id); }
             glue-clip-at(row, x, sx, ppb) => { root.glue-clip-at(row, x, sx, ppb) }
