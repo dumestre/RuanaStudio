@@ -13,6 +13,10 @@ export component Explorer inherits Rectangle {
     in-out property <string> search-text: "";
     in-out property <string> preview-file-name: "Ruana Studio";
     in-out property <string> preview-file-info: "Folder";
+    in-out property <string> preview-path: "";
+
+    callback preview-play(string);
+    callback preview-stop();
 
     // Filesystem properties
     in-out property <string> current-path: "";
@@ -139,6 +143,7 @@ export component Explorer inherits Rectangle {
                 file-selected(name, type, path) => {
                     root.preview-file-name = name;
                     root.preview-file-info = type + " | " + path;
+                    root.preview-path = path;
                 }
                 directory-entered(path) => {
                     root.explorer-directory-entered(path);
@@ -213,14 +218,14 @@ export component Explorer inherits Rectangle {
         Preview {
             file-name: root.preview-file-name;
             file-info: root.preview-file-info;
-
+            preview-path: root.preview-path;
 
             play => {
-                // Ligação com o engine virá depois.
+                root.preview-play(root.preview-path);
             }
 
             stop => {
-                // Ligação com o engine virá depois.
+                root.preview-stop();
             }
         }
     }

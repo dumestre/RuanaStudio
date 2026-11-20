@@ -3,6 +3,7 @@ import { Theme } from "../theme.slint";
 export component Preview inherits Rectangle {
     in property <string> file-name: "No file selected";
     in property <string> file-info: "Select an audio file to preview";
+    in property <string> preview-path: "";
     in property <string> duration: "00:00";
     in property <bool> playing: false;
     in property <float> progress: 0.0;

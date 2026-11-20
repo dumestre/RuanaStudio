@@ -650,6 +650,14 @@ pub fn setup(
     // Explorador de arquivos: navegação, histórico e filtro.
     explorer::wire_explorer(ui);
 
+    // Pré-escuta do Explorer: toca o arquivo selecionado via engine.
+    {
+        let audio = audio.clone();
+        ui.on_preview_play(move |path| {
+            audio.preview(&path, 0.8, 0.5);
+        });
+    }
+
     // Parâmetros do mixer → core (atualização por canal, sem rebuild).
     {
         let project = project.clone();
