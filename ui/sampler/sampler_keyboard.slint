@@ -2,11 +2,9 @@
 // TECLADO VISUAL DO SAMPLER
 // ============================================================
 //
-// Teclas brancas e pretas em uma oitava (C3..C4). O usuário clica
-// numa tecla e o componente publica `note-pressed(midi)` — o host
-// (Rust ou sampler.slint) decide o que fazer com a nota.
-//
-// Responsivo: `compact` reduz a altura e o tamanho das teclas.
+// Teclas brancas e pretas em uma oitava completa (C3..C4).
+// O usuário clica numa tecla e o componente publica `note-pressed(midi)`.
+// Responsivo: preenche a largura disponível, `compact` reduz altura.
 // ============================================================
 
 import { Theme } from "../theme.slint";
@@ -23,16 +21,17 @@ export component SamplerKeyboard inherits Rectangle {
     in property <float> root-key: 0.5;
 
     // Altura do teclado.
-    property <length> key-h: root.compact ? 40px : 60px;
-    // Largura de cada tecla branca.
-    property <length> white-w: root.compact ? 14px : 20px;
+    property <length> key-h: root.compact ? 50px : 70px;
 
-    // Oitava central: C3=48 .. C4=60.
-    private property <[int]> white-notes: [48, 50, 52, 53, 55, 57, 59];
-    // Teclas pretas entre as brancas (C#3, D#3, F#3, G#3, A#3).
+    // Oitava central: C3=48 .. C4=60 (8 teclas brancas).
+    private property <[int]> white-notes: [48, 50, 52, 53, 55, 57, 59, 60];
+    // Teclas pretas entre as brancas (C#3, D#3, F#3, G#3, G#3, A#3).
     private property <[int]> black-notes: [49, 51, 54, 56, 58];
-    // Índices das brancas que têm preto à direita.
+    // Índices das brancas que têm preto à direita (C, D, F, G, A).
     private property <[int]> black-after: [0, 1, 3, 4, 5];
+
+    // Largura de cada tecla branca (mínimo garantido; o pai define via binding).
+    in property <length> white-w: 20px;
 
     height: root.key-h;
 
@@ -51,12 +50,12 @@ export component SamplerKeyboard inherits Rectangle {
             : #FFFFFF;
         border-width: 1px;
         border-color: Theme.border;
-        border-radius: i == root.white-notes.length - 1 ? 3px : 0px;
+        border-radius: i == root.white-notes.length - 1 ? 4px : 0px;
 
         // Marca a tecla raiz.
         if i == Math.round(root.root-key * (root.white-notes.length - 1)): Rectangle {
-            y: parent.height - 2px;
-            height: 2px;
+            y: parent.height - 3px;
+            height: 3px;
             width: parent.width;
             background: Theme.accent;
         }
@@ -68,7 +67,7 @@ export component SamplerKeyboard inherits Rectangle {
             }
             states [
                 pressed when self.pressed: {
-                    opacity: 0.6;
+                    opacity: 0.7;
                 }
             ]
         }
@@ -79,15 +78,18 @@ export component SamplerKeyboard inherits Rectangle {
     // ---------------------------------------------------------
 
     for b[i] in root.black-notes: Rectangle {
-        x: (root.black-after[i] + 1) * root.white-w - root.white-w * 0.55;
+        // Posição: após a tecla branca indicada em black-after, menos metade da largura da preta
+        x: (root.black-after[i] + 1) * root.white-w - root.white-w * 0.6 / 2;
         y: 0;
-        width: root.white-w * 0.7;
-        height: root.key-h * 0.6;
+        width: root.white-w * 0.6;
+        height: root.key-h * 0.55;
 
         background: root.pressed-note == b
             ? Theme.accent.brighter(0.2)
             : #1A1A1A;
-        border-radius: 2px;
+        border-radius: 3px;
+        border-width: 1px;
+        border-color: Theme.border;
 
         TouchArea {
             mouse-cursor: pointer;
@@ -96,7 +98,7 @@ export component SamplerKeyboard inherits Rectangle {
             }
             states [
                 pressed when self.pressed: {
-                    opacity: 0.6;
+                    opacity: 0.7;
                 }
             ]
         }

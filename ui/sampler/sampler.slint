@@ -449,10 +449,12 @@ export component Sampler inherits Rectangle {
         // ========================================================
 
         SamplerKeyboard {
-            height: root.compact ? 40px : 60px;
+            height: root.compact ? 50px : 70px;
             vertical-stretch: 0;
+            horizontal-stretch: 1;
             compact: root.compact;
             root-key: root.root-key;
+            white-w: root.width / 8;
 
             note-pressed(midi) => {
                 root.note-pressed(midi);
