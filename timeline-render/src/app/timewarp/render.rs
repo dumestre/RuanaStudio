@@ -40,6 +40,95 @@ pub fn build_timewarp_ruler_instances(
     )
 }
 
+/// Grade vertical musical na banda de onda (warp area) — referência visual para snap.
+fn build_warp_grid_instances(m: &TimewarpMetrics, width: f32) -> Vec<RectInstance> {
+    let t = m.theme.clamp(0, 6);
+    let mut instances = Vec::new();
+
+    let body_top = m.body_top;
+    let body_h = m.body_h.max(0.0);
+    let band_top = body_top + body_h * 0.16;
+    let band_h = (body_h * 0.68).max(8.0);
+
+    // Grid vertical musical na banda de onda (mesma lógica do piano roll / timeline)
+    let px_per_beat = m.px_per_beat;
+    let px_per_bar = px_per_beat * 4.0;
+    let total_bars = ((width + m.scroll_x) / px_per_bar).ceil() as usize + 1;
+
+    for i in 0..total_bars {
+        let bx = i as f32 * px_per_bar - m.scroll_x;
+        if bx > width + px_per_bar || bx < -px_per_bar { continue; }
+
+        // Linhas de compasso (mais grossas)
+        let draw_x = bx.max(0.0);
+        if draw_x >= 0.0 && draw_x <= width {
+            instances.push(RectInstance {
+                x: draw_x,
+                y: band_top,
+                w: 1.0,
+                h: band_h,
+                color: [palette::BASE[t].0, palette::BASE[t].1, palette::BASE[t].2, 60],
+                wave_offset: 0, wave_count: 0, clip_w: 0.0, clip_h: 0.0, radius: 0.0,
+            });
+        }
+
+        // Subdivisões: 1/8, 1/16, 1/32, 1/64 conforme zoom
+        // 1/8
+        if px_per_bar >= 240.0 {
+            let n = 8u32;
+            let step = px_per_bar / n as f32;
+            for m in 1..n {
+                let xs = bx + m as f32 * step;
+                if xs < 0.0 || xs > width { continue; }
+                instances.push(RectInstance {
+                    x: xs,
+                    y: band_top,
+                    w: 1.0,
+                    h: band_h,
+                    color: [palette::BASE[t].0, palette::BASE[t].1, palette::BASE[t].2, 40],
+                    wave_offset: 0, wave_count: 0, clip_w: 0.0, clip_h: 0.0, radius: 0.0,
+                });
+            }
+        }
+        // 1/16
+        if px_per_bar >= 480.0 {
+            let n = 16u32;
+            let step = px_per_bar / n as f32;
+            for m in 1..n {
+                let xs = bx + m as f32 * step;
+                if xs < 0.0 || xs > width { continue; }
+                instances.push(RectInstance {
+                    x: xs,
+                    y: band_top,
+                    w: 1.0,
+                    h: band_h,
+                    color: [palette::BASE[t].0, palette::BASE[t].1, palette::BASE[t].2, 30],
+                    wave_offset: 0, wave_count: 0, clip_w: 0.0, clip_h: 0.0, radius: 0.0,
+                });
+            }
+        }
+        // 1/32
+        if px_per_bar >= 960.0 {
+            let n = 32u32;
+            let step = px_per_bar / n as f32;
+            for m in 1..n {
+                let xs = bx + m as f32 * step;
+                if xs < 0.0 || xs > width { continue; }
+                instances.push(RectInstance {
+                    x: xs,
+                    y: band_top,
+                    w: 1.0,
+                    h: band_h,
+                    color: [palette::BASE[t].0, palette::BASE[t].1, palette::BASE[t].2, 25],
+                    wave_offset: 0, wave_count: 0, clip_w: 0.0, clip_h: 0.0, radius: 0.0,
+                });
+            }
+        }
+    }
+
+    instances
+}
+
 /// Instâncias completas do corpo do timewarp (grid + gutter + curva + pontos).
 pub fn build_timewarp_instances(
     tempo_map: &TempoMap,
@@ -54,6 +143,9 @@ pub fn build_timewarp_instances(
     // Corpo (grid vertical só) + gutter de BPM.
     instances.extend(m.build_body_instances(width));
     instances.extend(m.build_bpm_gutter_instances(_height));
+
+    // Grade vertical adicional na faixa de onda (warp area) para snap visual.
+    instances.extend(build_warp_grid_instances(m, width));
 
     // Converte o mapa de tempo em pontos ordenados.
     let mut points: Vec<TempoPoint> = tempo_map

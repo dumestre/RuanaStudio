@@ -1608,29 +1608,41 @@ self.rebuild_wave_data();
 // Primeiro limpa ambos para garantir estado consistente.
 set_gain_override(false);
 set_hand_override(false);
+let mut hand_or_gain_active = false;
+
 if self.fade_interaction.is_dragging() {
     if let Some(ref drag) = self.fade_interaction.active_drag {
         match drag.kind {
-            fades::FadeHandleKind::GainLevel => set_gain_override(true),
-            _ => set_hand_override(true),
+            fades::FadeHandleKind::GainLevel => {
+                set_gain_override(true);
+                hand_or_gain_active = true;
+            }
+            _ => {
+                set_hand_override(true);
+                hand_or_gain_active = true;
+            }
         }
     }
 } else if let Some((_, kind)) = self.fade_interaction.hovered {
     if kind == fades::FadeHandleKind::GainLevel {
         set_gain_override(true);
+        hand_or_gain_active = true;
     } else {
         set_hand_override(true);
+        hand_or_gain_active = true;
     }
-        } else if self.clip_interaction.is_seam_hovered() {
+} else if self.clip_interaction.is_seam_hovered() {
     set_cursor_override(Tool::Slice);
+    hand_or_gain_active = true; // cursor override ativo
 }
 
-    // Cursor de resize vertical sobre a splitter do piano roll
-    if self.splitter_drag || self.splitter_hit_test(self.last_cursor.1, self.size.1 as f32) {
-        set_vresize_override(true);
-    } else {
-        set_vresize_override(false);
-    }
+// Cursor de resize vertical sobre a splitter do piano roll
+// Só limpa o vresize se NÃO tivermos hand/gain ativo (evita sobrescrever).
+if self.splitter_drag || self.splitter_hit_test(self.last_cursor.1, self.size.1 as f32) {
+    set_vresize_override(true);
+} else if !hand_or_gain_active {
+    set_vresize_override(false);
+}
 
     if self.panning && !self.scrubbing && !self.clip_interaction.is_dragging() && !self.clip_interaction.is_drawing() && !self.clip_interaction.is_stretching() {
             let (lx, ly) = self.last_cursor;
