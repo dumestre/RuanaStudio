@@ -338,9 +338,6 @@ impl MeterPump {
     /// e a mesma que a engine publica — é o que mantém o índice do
     /// medidor e o índice do canal do mixer coincidentes sem mapa.
     pub fn tick(&mut self, audio: &AudioBridge, channels: usize) {
-        if audio.is_silent() {
-            return;
-        }
         let bank = audio.meters();
         // A engine declara quantos canais existem. Enquanto a contagem
         // não bater com o projeto, publicar seria escrever a medição no
