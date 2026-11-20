@@ -298,6 +298,14 @@ impl EngineBridge {
         // de clips na timeline seguirem o botão.
         self.engine.snap_enabled = ui.get_snap_enabled();
 
+        // Tempo track: o botão do header manda. Sem esta sincronização o
+        // painel de tracks e o render ficam com alturas diferentes.
+        let ui_tempo_track = ui.get_show_tempo_track();
+        if self.engine.show_tempo_track != ui_tempo_track {
+            self.engine.show_tempo_track = ui_tempo_track;
+            self.dirty = true;
+        }
+
         // A textura `timeline_bg` tem que casar EXATAMENTE com o quad na
         // surface (senão sobe de escala → borrado). O "buraco" do Slint é o
         // `canvas-image`: começa em `+left-padding`, ocupa toda a altura do

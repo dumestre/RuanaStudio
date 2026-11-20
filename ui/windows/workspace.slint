@@ -151,6 +151,9 @@ export component Workspace inherits Rectangle {
     in-out property <length> automation-lane-height: 40px;
     in-out property <[int]> automation-params: [];
 
+    // Tempo track (faixa de BPM). O host sincroniza com o estado da engine.
+    in-out property <bool> show-tempo-track: false;
+
     in-out property <[ClipData]> clips: [
         {
             id: 0,
@@ -1132,6 +1135,11 @@ export component Workspace inherits Rectangle {
 
                             track-arms <=>
                                 root.mixer-arms;
+
+                            // Tempo track (a engine é a dona do estado; o
+                            // host lê a propriedade a cada frame)
+                            show-tempo-track <=>
+                                root.show-tempo-track;
 
                             // Automation lanes
                             show-automation-lanes:

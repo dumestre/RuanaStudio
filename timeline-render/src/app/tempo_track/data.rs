@@ -69,13 +69,15 @@ impl TempoTrackMetrics {
         let track_h = self.track_h.max(0.0);
         let track_bottom = track_top + track_h;
 
-        // Fundo base da track
+        // Fundo base da track: TRANSPARENTE de propósito. O grid e as colunas
+        // alternadas da timeline (desenhados abaixo da régua) atravessam a
+        // faixa de tempo; só a curva de BPM e os marcadores ficam por cima.
         instances.push(RectInstance {
             x: 0.0,
             y: track_top,
             w: width,
             h: track_h,
-            color: rgba(palette::TIMELINE_BG[t], 255),
+            color: rgba(palette::TIMELINE_BG[t], 0),
             wave_offset: 0,
             wave_count: 0,
             clip_w: 0.0,
@@ -162,10 +164,10 @@ impl TempoTrackMetrics {
             }
         }
 
-        // Linha separadora inferior da tempo track
+        // Linha separadora inferior da tempo track (fina, sem esconder o grid)
         instances.push(RectInstance {
             x: 0.0, y: track_bottom - 1.0, w: width, h: 1.0,
-            color: [palette::BASE[t].0, palette::BASE[t].1, palette::BASE[t].2, 255],
+            color: [palette::BASE[t].0, palette::BASE[t].1, palette::BASE[t].2, 140],
             wave_offset: 0, wave_count: 0, clip_w: 0.0, clip_h: 0.0, radius: 0.0,
         });
 
@@ -180,14 +182,15 @@ impl TempoTrackMetrics {
         let track_top = self.track_top;
         let track_h = self.track_h.max(0.0);
 
-        // Fundo do gutter (coluna "TEMPO" onde o track header tem o nome)
+        // Fundo do gutter (coluna "TEMPO" onde o track header tem o nome).
+        // Translúcido: o grid da timeline continua visível por baixo.
         let gutter_w = 60.0;
         instances.push(RectInstance {
             x: 0.0,
             y: track_top,
             w: gutter_w,
             h: track_h,
-            color: rgba(palette::BASE[t], 255),
+            color: rgba(palette::BASE[t], 90),
             wave_offset: 0,
             wave_count: 0,
             clip_w: 0.0,

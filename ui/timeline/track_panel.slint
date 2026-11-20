@@ -35,7 +35,7 @@ export component TrackPanel inherits Rectangle {
     in property <length> scroll-y: 0px;
 
     // Tempo track
-    in property <bool> show-tempo-track: true;
+    in-out property <bool> show-tempo-track: false;
     in property <length> tempo-track-height: 60px;
 
     // Automation lanes
@@ -153,7 +153,7 @@ export component TrackPanel inherits Rectangle {
         scroll-y:
             root.scroll-y;
 
-        show-tempo-track:
+        show-tempo-track <=>
             root.show-tempo-track;
 
         tempo-track-height:

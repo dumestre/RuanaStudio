@@ -83,8 +83,8 @@ export component TimelineHeader inherits Rectangle {
 
     in property <length> scroll-y: 0px;
 
-    // Tempo track
-    in property <bool> show-tempo-track: true;
+    // Tempo track (opcional: liga/desliga no header, logo abaixo da régua)
+    in-out property <bool> show-tempo-track: false;
     in property <length> tempo-track-height: 60px;
 
     // Automation lanes
@@ -126,14 +126,15 @@ export component TimelineHeader inherits Rectangle {
     // HEADER FIXO NO TOPO (altura = ruler-height)
     // =====================================================
 
-    // Tempo Track Header (opcional, no topo)
+    // Tempo Track Header (opcional, logo ABAIXO da régua — mesma origem
+    // vertical que a engine usa para desenhar a faixa).
     tempo-header := Rectangle {
         visible: root.show-tempo-track;
         x: 0;
-        y: 0;
+        y: root.ruler-height;
         width: parent.width;
         height: root.tempo-track-height;
-        background: Theme.base;
+        background: transparent;
 
         Text {
             x: 8px;
@@ -212,6 +213,35 @@ export component TimelineHeader inherits Rectangle {
                 vertical-alignment: TextVerticalAlignment.center;
 
                 overflow: elide;
+            }
+        }
+
+
+        // =============================================
+        // TEMPO TRACK (liga/desliga a faixa de BPM)
+        // =============================================
+
+        Button {
+
+            width: 20px;
+            height: 20px;
+
+            corner-radius: 2px;
+
+            icon: @image-url("../icons/metronome.svg");
+
+            icon-color: Theme.text-primary;
+
+            toggled: root.show-tempo-track;
+            subtle-toggled: true;
+
+            resting-bg: transparent;
+            hover-bg: Theme.base;
+
+            borderless: true;
+
+            clicked => {
+                root.show-tempo-track = !root.show-tempo-track;
             }
         }
 

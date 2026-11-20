@@ -975,7 +975,7 @@ transport,
             last_press: None,
 
             // Tempo Track (faixa de tempo no topo da timeline).
-            show_tempo_track: true,
+            show_tempo_track: false,
             tempo_track_height: tempo_track::TEMPO_TRACK_HEIGHT,
             tempo_track_inter: tempo_track::TempoTrackInteraction::new(),
             tempo_track_write_back: None,

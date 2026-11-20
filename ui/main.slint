@@ -340,6 +340,10 @@ export component MainWindow inherits Window {
     in-out property <length> automation-lane-height: 40px;
     in-out property <[int]> automation-params: [];
 
+    // Tempo track (faixa de BPM no topo da timeline). A engine é a dona
+    // do estado; o host sincroniza esta propriedade a cada frame.
+    in-out property <bool> show-tempo-track: false;
+
 
     // =====================================================
     // CALLBACKS
@@ -924,6 +928,7 @@ export component MainWindow inherits Window {
             track-names <=> root.track-names;
             track-colors <=> root.track-colors;
             show-automation-lanes <=> root.show-automation-lanes;
+            show-tempo-track <=> root.show-tempo-track;
             automation-lane-height <=> root.automation-lane-height;
             automation-params <=> root.automation-params;
             clips <=> root.clips;
