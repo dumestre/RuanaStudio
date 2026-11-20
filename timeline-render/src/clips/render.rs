@@ -989,7 +989,7 @@ fn push_clip(
     row_height: f32,
     _wave_natural_w: f32,
 ) {
-    let clip_r = 3.0;
+    let clip_r = 0.0;
 
     let decor_alpha: u8 =
         if body_alpha < 0.15 {
