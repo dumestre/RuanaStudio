@@ -654,7 +654,7 @@ pub fn setup(
     {
         let audio = audio.clone();
         ui.on_preview_play(move |path| {
-            audio.preview(&path, 0.8, 0.5);
+            audio.preview(path.as_str(), 0.8, 0.5);
         });
     }
 

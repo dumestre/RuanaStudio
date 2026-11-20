@@ -562,6 +562,8 @@ export component Workspace inherits Rectangle {
     callback sampler-load-requested();
     callback sampler-sample-dropped(string, string);
 
+    callback preview-play(string);
+
 
     // ========================================================
     // LAYOUT PRINCIPAL
@@ -953,9 +955,41 @@ export component Workspace inherits Rectangle {
                                 clicked => {
                                     root.clip-pool-floating =
                                         false;
-                                }
-                            }
                         }
+
+                        // =====================================
+                        // VERTICAL SCROLLBAR + ZOOM (lado direito da timeline)
+                        // =====================================
+
+                        VerticalBar {
+                            horizontal-stretch: 0;
+                            vertical-stretch: 1;
+
+                            scroll-y <=> timeline.scroll-y;
+                            scroll-max-y <=> timeline.max-scroll-y;
+                            zoom-y <=> timeline.zoom-y;
+
+                            width: 30px;
+                        }
+
+                    }
+
+                // =====================================
+                // HORIZONTAL SCROLLBAR + ZOOM (embaixo da timeline)
+                // =====================================
+
+                HorizontalBarTool {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 0;
+
+                    scroll-x <=> timeline.scroll-x;
+                    scroll-max-x <=> timeline.max-scroll-x;
+                    zoom-x <=> timeline.zoom;
+
+                    height: 40px;
+                }
+
+                }
                     }
                 }
 
@@ -2144,9 +2178,11 @@ export component Workspace inherits Rectangle {
                                         explorer-go-to-drives() => {
                                             root.explorer-go-to-drives();
                                         }
+                                        preview-play(path) => {
+                                            root.preview-play(path);
+                                        }
                                     }
                                 }
-
 
             // =================================================
             // DRAG GHOST

@@ -509,6 +509,7 @@ export component MainWindow inherits Window {
     callback track-recolor-requested(int, int);
     callback sampler-load-requested(int);
     callback sampler-sample-dropped(string, string);
+    callback preview-play(string);
     callback debug-log(string);
 
 
@@ -927,6 +928,7 @@ export component MainWindow inherits Window {
             sampler-sample-duration <=> root.sampler-sample-duration;
             sampler-load-requested() => { root.sampler-load-requested(root.beat-selected-track); }
             sampler-sample-dropped(name, path) => { root.sampler-sample-dropped(name, path); }
+            preview-play(path) => { root.preview-play(path); }
             theme-selected(i) => { root.theme-selected(i); }
             left-panel-width <=> root.left-panel-width;
             tracks-header-width <=> root.tracks-header-width;

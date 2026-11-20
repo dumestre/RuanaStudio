@@ -46,7 +46,7 @@ export component SamplerKeyboard inherits Rectangle {
         width: root.white-w;
         height: root.key-h;
 
-        background: root.pressed == w
+        background: root.pressed-note == w
             ? Theme.accent
             : #FFFFFF;
         border-width: 1px;
@@ -67,7 +67,7 @@ export component SamplerKeyboard inherits Rectangle {
                 root.note-pressed(w);
             }
             states [
-                pressed when pressed: {
+                pressed when self.pressed: {
                     opacity: 0.6;
                 }
             ]
@@ -84,7 +84,7 @@ export component SamplerKeyboard inherits Rectangle {
         width: root.white-w * 0.7;
         height: root.key-h * 0.6;
 
-        background: root.pressed == b
+        background: root.pressed-note == b
             ? Theme.accent.brighter(0.2)
             : #1A1A1A;
         border-radius: 2px;
@@ -95,7 +95,7 @@ export component SamplerKeyboard inherits Rectangle {
                 root.note-pressed(b);
             }
             states [
-                pressed when pressed: {
+                pressed when self.pressed: {
                     opacity: 0.6;
                 }
             ]
@@ -103,5 +103,5 @@ export component SamplerKeyboard inherits Rectangle {
     }
 
     // Estado da tecla pressionada (para realce visual).
-    private property <int> pressed: -1;
+    private property <int> pressed-note: -1;
 }
