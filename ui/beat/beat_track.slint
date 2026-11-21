@@ -83,7 +83,6 @@ export component BeatTrack inherits Rectangle {
 
         spacing: root.column-spacing;
 
-        alignment: LayoutAlignment.stretch;
         cross-axis-alignment: CrossAxisAlignment.center;
 
 
@@ -153,9 +152,9 @@ export component BeatTrack inherits Rectangle {
 
                 color: Theme.text-dim;
 
-                font-family: "";
+                
                 font-size: 14px;
-                font-weight: 0;
+               
 
                 horizontal-alignment: center;
                 vertical-alignment: center;
@@ -352,8 +351,7 @@ export component BeatTrack inherits Rectangle {
             // ====================================================
 
             TouchArea {
-                width: parent.width;
-                height: parent.height;
+               
 
                 mouse-cursor: pointer;
 

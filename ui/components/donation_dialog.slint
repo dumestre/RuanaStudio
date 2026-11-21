@@ -7,12 +7,11 @@ export component DonationDialog inherits Rectangle {
 
     width: 100%;
     height: 100%;
-    background: transparent;
+   
 
     // Backdrop com cor sólida escura (aparece só quando open)
     if root.open: Rectangle {
-        width: parent.width;
-        height: parent.height;
+
         background: #0A080F.with-alpha(0.80);
         z: 100;
 
@@ -36,8 +35,7 @@ export component DonationDialog inherits Rectangle {
 
         // Sombra simulada com múltiplas camadas
         Rectangle {
-            width: parent.width;
-            height: parent.height;
+           
             border-radius: 30px;
             background: #16141E.with-alpha(0.95);
             border-width: 1px;
@@ -193,8 +191,7 @@ export component DonationDialog inherits Rectangle {
                         border-color: #25D366.with-alpha(0.5);
 
                         TouchArea {
-                            width: parent.width;
-                            height: parent.height;
+                          
                         }
 
                         Text {
@@ -280,8 +277,7 @@ export component DonationDialog inherits Rectangle {
                         border-color: Theme.accent.with-alpha(0.5);
 
                         TouchArea {
-                            width: parent.width;
-                            height: parent.height;
+                           
                         }
 
                         Text {
@@ -364,8 +360,7 @@ export component DonationDialog inherits Rectangle {
                         background: Theme.text-dim.with-alpha(0.1);
 
                         TouchArea {
-                            width: parent.width;
-                            height: parent.height;
+                            
                             enabled: false;
                         }
 
@@ -443,8 +438,7 @@ export component DonationDialog inherits Rectangle {
             border-color: Theme.border.with-alpha(0.3);
 
             TouchArea {
-                width: parent.width;
-                height: parent.height;
+               
 
                 clicked => {
                     root.open = false;

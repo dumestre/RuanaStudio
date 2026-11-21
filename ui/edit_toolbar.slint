@@ -1,3 +1,4 @@
+
 import { Button } from "components/button.slint";
 import { Theme } from "theme.slint";
 
@@ -16,16 +17,23 @@ export component EditToolbar inherits Rectangle {
 
     callback tool-changed(int);
 
-
     // ============================================================
     // DIMENSÕES
     // ============================================================
 
     height: 20px;
 
+    // ============================================================
+    // CORES DOS BOTÕES
+    // ============================================================
+
+    // Estado normal
+    // Fundo cinza escuro e ícone cinza claro.
+    // Estado selecionado
+    // Fundo vermelho e ícone branco.
 
     // ============================================================
-    // TOOLBAR - LAYOUT PROFISSIONAL (CORRIGIDO PARA RELEASE)
+    // TOOLBAR
     // ============================================================
 
     HorizontalLayout {
@@ -33,11 +41,11 @@ export component EditToolbar inherits Rectangle {
         y: 0px;
         width: parent.width;
         height: parent.height;
+
         cross-axis-alignment: CrossAxisAlignment.center;
         padding-left: 4px;
         padding-right: 4px;
 
-        // CENTER - ferramentas principais
         HorizontalLayout {
             spacing: 2px;
             alignment: LayoutAlignment.center;
@@ -52,27 +60,27 @@ export component EditToolbar inherits Rectangle {
                 width: 18px;
                 height: 18px;
 
-                resting-bg: Theme.surface-high;
+                resting-bg: #2D2D2D;
 
                 icon: @image-url("icons/select.svg");
                 filled-icon: @image-url("icons/select_filled.svg");
 
-                icon-color: Theme.text-primary;
+                icon-color: #BDBDBD;
+
                 drop-shadow-blur: 3px;
                 drop-shadow-color: Theme.shadow;
                 drop-shadow-offset-y: 3px;
                 drop-shadow-offset-x: 1.5px;
 
                 padding-x: 0px;
-
                 borderless: true;
                 corner-radius: 2px;
 
                 toggled: root.active-tool == 0;
 
-                toggled-fg: Theme.on-crimson;
-                toggled-bg: Theme.crimson;
-                toggled-icon-color: Theme.on-crimson;
+                toggled-fg: #FFFFFF;
+                toggled-bg: #91ff00b2;
+                toggled-icon-color: #FFFFFF;
 
                 clicked => {
                     root.active-tool = 0;
@@ -88,15 +96,16 @@ export component EditToolbar inherits Rectangle {
                 width: 18px;
                 height: 18px;
 
-                resting-bg: Theme.surface-high;
+                resting-bg: #2D2D2D;
 
                 icon: @image-url("icons/draw.svg");
                 filled-icon: @image-url("icons/draw_filled.svg");
 
-                icon-color: Theme.text-primary;
+                icon-color: #BDBDBD;
 
                 borderless: true;
                 corner-radius: 2px;
+
                 drop-shadow-blur: 3px;
                 drop-shadow-color: Theme.shadow;
                 drop-shadow-offset-y: 3px;
@@ -104,16 +113,15 @@ export component EditToolbar inherits Rectangle {
 
                 toggled: root.active-tool == 4;
 
-                toggled-fg: Theme.on-crimson;
-                toggled-bg: Theme.crimson;
-                toggled-icon-color: Theme.on-crimson;
+                toggled-fg: #FFFFFF;
+                toggled-bg: #91ff00b2;
+                toggled-icon-color: #FFFFFF;
 
                 clicked => {
                     root.active-tool = 4;
                     root.tool-changed(4);
                 }
             }
-
 
             // =================================================
             // SLICE - 1
@@ -123,14 +131,16 @@ export component EditToolbar inherits Rectangle {
                 width: 18px;
                 height: 18px;
 
-                resting-bg: Theme.surface-high;
+                resting-bg: #2D2D2D;
 
                 icon: @image-url("icons/slice.svg");
                 filled-icon: @image-url("icons/slice_filled.svg");
 
-                icon-color: Theme.text-primary;
+                icon-color: #BDBDBD;
+
                 borderless: true;
                 corner-radius: 2px;
+
                 drop-shadow-blur: 3px;
                 drop-shadow-color: Theme.shadow;
                 drop-shadow-offset-y: 3px;
@@ -138,15 +148,15 @@ export component EditToolbar inherits Rectangle {
 
                 toggled: root.active-tool == 1;
 
-                toggled-fg: Theme.on-crimson;
-                toggled-bg: Theme.crimson;
-                toggled-icon-color: Theme.on-crimson;
+                toggled-fg: #FFFFFF;
+                toggled-bg: #91ff00b2;
+                toggled-icon-color: #FFFFFF;
+
                 clicked => {
                     root.active-tool = 1;
                     root.tool-changed(1);
                 }
             }
-
 
             // =================================================
             // GLUE - 2
@@ -156,15 +166,16 @@ export component EditToolbar inherits Rectangle {
                 width: 18px;
                 height: 18px;
 
-                resting-bg: Theme.surface-high;
+                resting-bg: #2D2D2D;
 
                 icon: @image-url("icons/glue.svg");
                 filled-icon: @image-url("icons/glue_filled.svg");
 
-                icon-color: Theme.text-primary;
+                icon-color: #BDBDBD;
 
                 borderless: true;
                 corner-radius: 2px;
+
                 drop-shadow-blur: 3px;
                 drop-shadow-color: Theme.shadow;
                 drop-shadow-offset-y: 3px;
@@ -172,16 +183,15 @@ export component EditToolbar inherits Rectangle {
 
                 toggled: root.active-tool == 2;
 
-                toggled-fg: Theme.on-crimson;
-                toggled-bg: Theme.crimson;
-                toggled-icon-color: Theme.on-crimson;
+                toggled-fg: #FFFFFF;
+                toggled-bg: #91ff00b2;
+                toggled-icon-color: #FFFFFF;
 
                 clicked => {
                     root.active-tool = 2;
                     root.tool-changed(2);
                 }
             }
-
 
             // =================================================
             // STRETCH - 3
@@ -191,16 +201,16 @@ export component EditToolbar inherits Rectangle {
                 width: 18px;
                 height: 18px;
 
-                resting-bg: Theme.surface-high;
+                resting-bg: #2D2D2D;
 
                 icon: @image-url("icons/expand_diag.svg");
                 filled-icon: @image-url("icons/stretch_filled.svg");
 
-                
-                icon-color: Theme.text-primary;
+                icon-color: #BDBDBD;
 
                 borderless: true;
                 corner-radius: 2px;
+
                 drop-shadow-blur: 3px;
                 drop-shadow-color: Theme.shadow;
                 drop-shadow-offset-y: 3px;
@@ -208,17 +218,15 @@ export component EditToolbar inherits Rectangle {
 
                 toggled: root.active-tool == 3;
 
-                toggled-fg: Theme.on-crimson;
-                toggled-bg: Theme.crimson;
-                toggled-icon-color: Theme.on-crimson;
+                toggled-fg: #FFFFFF;
+                toggled-bg: #91ff00b2;
+                toggled-icon-color: #FFFFFF;
 
                 clicked => {
                     root.active-tool = 3;
                     root.tool-changed(3);
                 }
             }
-
-
 
             // =================================================
             // ERASE - 5
@@ -228,17 +236,16 @@ export component EditToolbar inherits Rectangle {
                 width: 18px;
                 height: 18px;
 
-                resting-bg: Theme.surface-high;
+                resting-bg: #2D2D2D;
 
                 icon: @image-url("icons/erase.svg");
                 filled-icon: @image-url("icons/erase_filled.svg");
 
-                icon-color: Theme.text-primary;
-
-                
+                icon-color: #BDBDBD;
 
                 borderless: true;
                 corner-radius: 2px;
+
                 drop-shadow-blur: 3px;
                 drop-shadow-color: Theme.shadow;
                 drop-shadow-offset-y: 3px;
@@ -246,146 +253,13 @@ export component EditToolbar inherits Rectangle {
 
                 toggled: root.active-tool == 5;
 
-                toggled-fg: Theme.on-crimson;
-                toggled-bg: Theme.crimson;
-                toggled-icon-color: Theme.on-crimson;
-
+                toggled-fg: #FFFFFF;
+                toggled-bg: #91ff00b2;
+                toggled-icon-color: #FFFFFF;
 
                 clicked => {
                     root.active-tool = 5;
                     root.tool-changed(5);
-                }
-            }
-
-            // =================================================
-            // MARKER POSITION - 6
-            // =================================================
-
-            Button {
-                width: 18px;
-                height: 18px;
-
-                resting-bg: Theme.surface-high;
-
-                icon: @image-url("icons/draw.svg");
-                filled-icon: @image-url("icons/draw_filled.svg");
-
-                icon-color: Theme.text-primary;
-                borderless: true;
-                corner-radius: 2px;
-                drop-shadow-blur: 3px;
-                drop-shadow-color: Theme.shadow;
-                drop-shadow-offset-y: 3px;
-                drop-shadow-offset-x: 1.5px;
-
-                toggled: root.active-tool == 6;
-
-                toggled-fg: Theme.on-crimson;
-                toggled-bg: Theme.crimson;
-                toggled-icon-color: Theme.on-crimson;
-
-                clicked => {
-                    root.active-tool = 6;
-                    root.tool-changed(6);
-                }
-            }
-
-            // =================================================
-            // MARKER REGION - 7
-            // =================================================
-
-            Button {
-                width: 18px;
-                height: 18px;
-
-                resting-bg: Theme.surface-high;
-
-                icon: @image-url("icons/slice.svg");
-                filled-icon: @image-url("icons/slice_filled.svg");
-
-                icon-color: Theme.text-primary;
-                borderless: true;
-                corner-radius: 2px;
-                drop-shadow-blur: 3px;
-                drop-shadow-color: Theme.shadow;
-                drop-shadow-offset-y: 3px;
-                drop-shadow-offset-x: 1.5px;
-
-                toggled: root.active-tool == 7;
-
-                toggled-fg: Theme.on-crimson;
-                toggled-bg: Theme.crimson;
-                toggled-icon-color: Theme.on-crimson;
-
-                clicked => {
-                    root.active-tool = 7;
-                    root.tool-changed(7);
-                }
-            }
-
-            // =================================================
-            // MARKER LOOP - 8
-            // =================================================
-
-            Button {
-                width: 18px;
-                height: 18px;
-
-                resting-bg: Theme.surface-high;
-
-                icon: @image-url("icons/loop.svg");
-                filled-icon: @image-url("icons/loop.svg");
-
-                icon-color: Theme.text-primary;
-                borderless: true;
-                corner-radius: 2px;
-                drop-shadow-blur: 3px;
-                drop-shadow-color: Theme.shadow;
-                drop-shadow-offset-y: 3px;
-                drop-shadow-offset-x: 1.5px;
-
-                toggled: root.active-tool == 8;
-
-                toggled-fg: Theme.on-crimson;
-                toggled-bg: Theme.crimson;
-                toggled-icon-color: Theme.on-crimson;
-
-                clicked => {
-                    root.active-tool = 8;
-                    root.tool-changed(8);
-                }
-            }
-
-            // =================================================
-            // MARKER CD TRACK - 9
-            // =================================================
-
-            Button {
-                width: 18px;
-                height: 18px;
-
-                resting-bg: Theme.surface-high;
-
-                icon: @image-url("icons/disk.svg");
-                filled-icon: @image-url("icons/disk.svg");
-
-                icon-color: Theme.text-primary;
-                borderless: true;
-                corner-radius: 2px;
-                drop-shadow-blur: 3px;
-                drop-shadow-color: Theme.shadow;
-                drop-shadow-offset-y: 3px;
-                drop-shadow-offset-x: 1.5px;
-
-                toggled: root.active-tool == 9;
-
-                toggled-fg: Theme.on-crimson;
-                toggled-bg: Theme.crimson;
-                toggled-icon-color: Theme.on-crimson;
-
-                clicked => {
-                    root.active-tool = 9;
-                    root.tool-changed(9);
                 }
             }
         }
