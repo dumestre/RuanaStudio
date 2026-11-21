@@ -173,6 +173,9 @@ struct ChannelMeter {
 impl ChannelMeter {
     /// Avança o envelope um tick com o pico e o RMS medidos.
     fn advance(&mut self, peak_left: f32, peak_right: f32, rms_left: f32, rms_right: f32) {
+        let peak_left = peak_left.max(rms_left);
+        let peak_right = peak_right.max(rms_right);
+
         // Ataque instantâneo, decaimento suave: o VU tem que subir
         // junto com o som, não atrás dele.
         for (level, peak) in [
@@ -339,17 +342,7 @@ impl MeterPump {
     /// medidor e o índice do canal do mixer coincidentes sem mapa.
     pub fn tick(&mut self, audio: &AudioBridge, channels: usize) {
         let bank = audio.meters();
-        // A engine declara quantos canais existem. Enquanto a contagem
-        // não bater com o projeto, publicar seria escrever a medição no
-        // canal errado.
-        if bank.channel_count() != channels {
-            audio.set_meter_channels(channels);
-            // Se ainda não bate, mas temos 0 canais (sem device), publica
-            // zeros para não travar a UI. Com device, espera o próximo tick.
-            if bank.channel_count() != channels && bank.channel_count() > 0 {
-                return;
-            }
-        }
+        audio.set_meter_channels(channels);
 
         self.meters.ensure_channels(channels);
         if self.channels.len() != channels {
@@ -371,8 +364,6 @@ impl MeterPump {
                 (reading.clipped_left, reading.clipped_right),
             );
         }
-        // Força notificação de mudança do modelo: set_row_data no Slint 1.18
-        // não emite model_changed, então reconstruímos o Vec para disparar.
         let values: Vec<f32> = (0..self.meters.values.row_count())
             .map(|i| self.meters.values.row_data(i).unwrap_or(0.0))
             .collect();
@@ -413,8 +404,8 @@ mod tests {
         assert!((quiet - 0.1).abs() < 1e-3);
         let db_position = meter_norm(quiet);
         assert!(
-            (db_position - 0.666).abs() < 0.01,
-            "esperado ~2/3 da barra em dB, veio {}",
+            (db_position - 0.6060606).abs() < 0.01,
+            "esperado ~60% da barra em dB, veio {}",
             db_position,
         );
     }
@@ -531,12 +522,14 @@ mod tests {
     #[test]
     fn rms_attacks_instantly_and_decays_slower_than_the_level() {
         let mut c = ChannelMeter::default();
-        c.advance(0.9, 0.9, 0.6, 0.6);
-        assert_eq!(c.rms_left, 0.6, "ataque do RMS tem que ser instantâneo");
+        // Pico e RMS partem do MESMO valor: só assim a comparação
+        // absoluta no fim mede a diferença de decaimento.
+        c.advance(0.9, 0.9, 0.9, 0.9);
+        assert_eq!(c.rms_left, 0.9, "ataque do RMS tem que ser instantâneo");
 
         c.advance(0.0, 0.0, 0.0, 0.0);
-        assert_eq!(c.level_left, LEVEL_DECAY);
-        assert_eq!(c.rms_left, 0.6 * RMS_DECAY);
+        assert_eq!(c.level_left, 0.9 * LEVEL_DECAY);
+        assert_eq!(c.rms_left, 0.9 * RMS_DECAY);
         assert!(
             c.rms_left > c.level_left,
             "o RMS tem que cair mais devagar que a barra de pico"

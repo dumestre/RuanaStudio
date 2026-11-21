@@ -925,13 +925,15 @@ pub fn setup(
     }
 
     // Playback/seek/meters: módulo dedicado (app/src/playback.rs).
-    playback::install(
+    // O timer devolvido PRECISA ficar guardado: sem um dono ele é dropado
+    // e os medidores param de bombear logo após o setup.
+    bridge.borrow_mut().meter_timer = Some(playback::install(
         &ui.as_weak(),
         transport.clone(),
         project.clone(),
         meter_pump.clone(),
         audio.clone(),
-    );
+    ));
 
     ui.on_tool_changed(move |tool| {
         let _ = set_cursor_for_tool(tool);

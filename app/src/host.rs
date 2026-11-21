@@ -60,6 +60,9 @@ pub struct EngineBridge {
     /// da timeline trava mesmo com `playing=true`.
     pub audio_engine: Option<daw_audio::AudioEngine>,
     pub audio_sync_timer: Option<slint::Timer>,
+    /// Timer dos VU meters. Precisa viver pela vida do app: um
+    /// `slint::Timer` para de disparar ao ser dropado.
+    pub meter_timer: Option<slint::Timer>,
     /// Canto superior-esquerdo da janela (px físicos). Manter atualizado no
     /// `Moved`; usado para converter a posição GLOBAL do cursor (GetCursorPos)
     /// em coordenadas da janela durante drags do SO.
@@ -237,6 +240,7 @@ impl EngineBridge {
             scale,
             audio_engine: None,
             audio_sync_timer: None,
+            meter_timer: None,
             win_pos,
             clips_flag,
             io,

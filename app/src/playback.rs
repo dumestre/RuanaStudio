@@ -95,19 +95,26 @@ fn publish_beat_step(ui: &MainWindow, secs: f64, bpm: f64, last: &Cell<i32>) {
 /// O motor de áudio já está rodando quando isto é chamado (ver
 /// [`crate::audio_bridge`]): play/stop aqui só ligam e desligam o
 /// transporte, sem abrir nem fechar o dispositivo.
+///
+/// Devolve o [`slint::Timer`] dos medidores: um `Timer` para de disparar
+/// ao ser dropado, então quem chama PRECISA mantê-lo vivo pela vida do
+/// app (o playhead fica vivo porque as closures dos handlers guardam o
+/// `Rc`; o dos medidores não tem quem o guarde).
 pub fn install(
     ui: &slint::Weak<MainWindow>,
     transport: Arc<Mutex<Transport>>,
     project: Rc<RefCell<Project>>,
     meter_pump: Rc<RefCell<MeterPump>>,
     audio: AudioBridge,
-) {
+) -> slint::Timer {
     // Handlers precisam da instância forte; o Weak é só para os
     // closures dos timers (evita ciclo com a event loop).
-    let Some(ui) = ui.upgrade() else { return };
+    let Some(ui) = ui.upgrade() else {
+        return slint::Timer::default();
+    };
     let ui_weak = ui.as_weak();
 
-    let meter_timer = Rc::new(RefCell::new(slint::Timer::default()));
+    let meter_timer = slint::Timer::default();
     let playhead_timer = Rc::new(RefCell::new(slint::Timer::default()));
     let visual_clock: Rc<RefCell<Option<VisualClock>>> = Rc::new(RefCell::new(None));
     // O que está no ar agora (`None` = parado). Substitui o antigo
@@ -127,7 +134,7 @@ pub fn install(
         let project = project.clone();
         let meter_pump = meter_pump.clone();
         let audio = audio.clone();
-        meter_timer.borrow().start(
+        meter_timer.start(
             slint::TimerMode::Repeated,
             crate::meters::PUMP_INTERVAL,
             move || {
@@ -430,4 +437,6 @@ pub fn install(
             }
         });
     }
+
+    meter_timer
 }
