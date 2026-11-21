@@ -898,6 +898,35 @@ impl Project {
         source_start_beats: f32,
         file_path: Option<String>,
     ) -> Option<u64> {
+        self.add_clip_with_source_gain(
+            track_id,
+            kind,
+            name,
+            start_beat,
+            length_beats,
+            source_start_beats,
+            file_path,
+            0.0,
+        )
+    }
+
+    /// Igual a [`Self::add_clip_with_source`], mas o clip já nasce com
+    /// `gain_db` (normalização de importação).
+    ///
+    /// O ganho entra no MESMO evento `ClipAdded`: importar um áudio
+    /// normalizado não vira dois passos de undo (criar + ajustar gain).
+    /// O valor é limitado à faixa do fader de clip (-24..+12 dB).
+    pub fn add_clip_with_source_gain(
+        &mut self,
+        track_id: u64,
+        kind: ClipKind,
+        name: impl Into<String>,
+        start_beat: f32,
+        length_beats: f32,
+        source_start_beats: f32,
+        file_path: Option<String>,
+        gain_db: f32,
+    ) -> Option<u64> {
         if self.track(track_id).is_none() || length_beats <= crate::clip::BEAT_EPSILON {
             return None;
         }
@@ -912,6 +941,7 @@ impl Project {
         );
         clip.source_start_beats = source_start_beats.max(0.0);
         clip.file_path = file_path;
+        clip.gain_db = gain_db.clamp(-24.0, 12.0);
         if let Some(path) = clip.file_path.as_deref() {
             clip.color = crate::clip::sample_color(path);
             clip.color_override = false;

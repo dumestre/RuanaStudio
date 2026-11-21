@@ -113,6 +113,7 @@ pub fn import_audio_file(
         first_frame as f32 / source.sample_rate as f32,
         bpm,
     );
+    let gain_db = crate::normalize::gain_db_for(&source.samples);
 
     // Constrói LODs do trecho aparado.
     let lods = build_lods(&source.samples);
@@ -124,7 +125,7 @@ pub fn import_audio_file(
             .track_with_room(preferred, beat_hint.max(0.0), length)
             .or_else(|| proj.track(preferred).map(|t| t.id))?;
         let start = proj.find_free_slot(track_id, beat_hint.max(0.0), length);
-        let id = proj.add_clip_with_source(
+        let id = proj.add_clip_with_source_gain(
             track_id,
             ClipKind::Audio,
             name.as_str(),
@@ -132,6 +133,7 @@ pub fn import_audio_file(
             length,
             source_start_beats,
             Some(path.to_string_lossy().to_string()),
+            gain_db,
         )?;
         let color = proj
             .clips
@@ -198,7 +200,7 @@ pub fn import_audio_file_async(
                 return;
             };
             let start = proj.find_free_slot(track_id, beat_hint.max(0.0), imp.length_beats);
-            let Some(id) = proj.add_clip_with_source(
+            let Some(id) = proj.add_clip_with_source_gain(
                 track_id,
                 ClipKind::Audio,
                 imp.name.as_str(),
@@ -206,6 +208,7 @@ pub fn import_audio_file_async(
                 imp.length_beats,
                 imp.source_start_beats,
                 Some(path_str.clone()),
+                imp.gain_db,
             ) else {
                 return;
             };
@@ -351,6 +354,7 @@ fn import_from_entry(
     let length = (source.duration_seconds * bpm / 60.0).max(0.01);
     let source_start_beats =
         beats_for_seconds(first_frame as f32 / source.sample_rate as f32, bpm);
+    let gain_db = crate::normalize::gain_db_for(&source.samples);
     let lods = build_lods(&source.samples);
 
     let clip_id = {
@@ -360,7 +364,7 @@ fn import_from_entry(
             .track_with_room(preferred, beat_hint.max(0.0), length)
             .or_else(|| proj.track(preferred).map(|t| t.id))?;
         let start = proj.find_free_slot(track_id, beat_hint.max(0.0), length);
-        let id = proj.add_clip_with_source(
+        let id = proj.add_clip_with_source_gain(
             track_id,
             ClipKind::Audio,
             name.as_str(),
@@ -368,6 +372,7 @@ fn import_from_entry(
             length,
             source_start_beats,
             Some(path.to_string_lossy().to_string()),
+            gain_db,
         )?;
         let color = proj
             .clips
@@ -413,6 +418,7 @@ fn import_from_entry_untrimmed(
     track_colors_model: &slint::VecModel<i32>,
 ) -> Option<u64> {
     let name = entry.name.clone();
+    let gain_db = crate::normalize::gain_db_for(&entry.decoded.samples);
     let clip_id = {
         let mut proj = project.borrow_mut();
         let preferred = track_hint.max(0) as u64;
@@ -420,13 +426,15 @@ fn import_from_entry_untrimmed(
             .track_with_room(preferred, beat_hint.max(0.0), length)
             .or_else(|| proj.track(preferred).map(|t| t.id))?;
         let start = proj.find_free_slot(track_id, beat_hint.max(0.0), length);
-        let id = proj.add_clip_with_path(
+        let id = proj.add_clip_with_source_gain(
             track_id,
             ClipKind::Audio,
             name.as_str(),
             start,
             length,
+            0.0,
             Some(path.to_string_lossy().to_string()),
+            gain_db,
         )?;
         let color = proj
             .clips

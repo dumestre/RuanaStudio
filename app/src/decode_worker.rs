@@ -63,6 +63,8 @@ pub struct ImportedWave {
     pub lods: Vec<LodBars>,
     /// Total de quadros (samples mono) deste trecho aparado.
     pub frames: usize,
+    /// Ganho de normalização (dB) calculado sobre o trecho aparado.
+    pub gain_db: f32,
 }
 
 // ============================================================
@@ -210,6 +212,9 @@ fn import_wave(job: &ImportJob) -> Option<ImportedWave> {
     // Constrói LODs a partir das samples aparadas.
     let lods = build_lods(&trimmed);
     let frames = trimmed.len();
+    // Normalização de premix: o ganho é medido no MESMO trecho que o
+    // clip vai tocar (silêncio das bordas já removido).
+    let gain_db = crate::normalize::gain_db_for(&trimmed);
 
     let name = path
         .file_stem()
@@ -223,6 +228,7 @@ fn import_wave(job: &ImportJob) -> Option<ImportedWave> {
         source_start_beats,
         lods,
         frames,
+        gain_db,
     })
 }
 

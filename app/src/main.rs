@@ -44,6 +44,7 @@ mod daw_midi_reexport {
 #[macro_use]
 mod mixer;
 mod models;
+mod normalize;
 mod os_drop;
 mod playback;
 mod project_io;
