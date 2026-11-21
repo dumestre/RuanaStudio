@@ -979,17 +979,54 @@ impl App {
         }
 
         // Linha de corte vertical viva (ferramenta Slice — tecla 4) na cor da
-        // borda de seleção (#262626).
+        // borda de seleção (#262626). Com snap: gruda no grid quando o cursor
+        // passa de 50% entre duas grades, e mostra um marcador no topo.
         if current_tool() == Tool::Slice && self.last_cursor.1 >= self.content_top() {
             let cx = self.last_cursor.0;
             if cx >= 0.0 && cx <= width {
-                let col = (0x26, 0x26, 0x26);
+                // Converte cursor para beat e aplica snap se ativado
+                let click_beat = (cx + self.scroll_x) / self.px_per_beat.max(0.001);
+                let (snap_x, is_snapped) = if self.snap_enabled {
+                    let step = self.grid_beat_step();
+                    let snapped_beat = (click_beat / step).round() * step;
+                    let snapped_x = snapped_beat * self.px_per_beat - self.scroll_x;
+                    let dist = (snapped_x - cx).abs();
+                    let threshold = self.px_per_beat * step * 0.5;
+                    (snapped_x, dist <= threshold)
+                } else {
+                    (cx, false)
+                };
+
+                let col = if is_snapped {
+                    // Cor mais forte quando está "grudado" no grid
+                    [0xFF, 0x44, 0x44, 220]
+                } else {
+                    [0x26, 0x26, 0x26, 180]
+                };
                 instances.push(RectInstance {
-                    x: cx - 1.0, y: self.content_top(),
+                    x: snap_x - 1.0, y: self.content_top(),
                     w: 2.0, h: (timeline_bottom - self.content_top()).max(0.0),
-                    color: [col.0, col.1, col.2, 180],
+                    color: col,
                     wave_offset: 0, wave_count: 0, clip_w: 0.0, clip_h: 0.0, radius: 0.0,
                 });
+
+                // Marcador no topo quando snapped — indica "vai cortar aqui"
+                if is_snapped {
+                    let marker_w = 8.0;
+                    instances.push(RectInstance {
+                        x: snap_x - marker_w / 2.0, y: self.content_top() - 12.0,
+                        w: marker_w, h: 12.0,
+                        color: col,
+                        wave_offset: 0, wave_count: 0, clip_w: 0.0, clip_h: 0.0, radius: 1.0,
+                    });
+                    // Linha fina no topo do marcador
+                    instances.push(RectInstance {
+                        x: snap_x - 1.0, y: self.content_top() - 14.0,
+                        w: 2.0, h: 2.0,
+                        color: col,
+                        wave_offset: 0, wave_count: 0, clip_w: 0.0, clip_h: 0.0, radius: 0.0,
+                    });
+                }
             }
         }
 
