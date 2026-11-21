@@ -371,6 +371,16 @@ impl MeterPump {
                 (reading.clipped_left, reading.clipped_right),
             );
         }
+        // Força notificação de mudança do modelo: set_row_data no Slint 1.18
+        // não emite model_changed, então reconstruímos o Vec para disparar.
+        let values: Vec<f32> = (0..self.meters.values.row_count())
+            .map(|i| self.meters.values.row_data(i).unwrap_or(0.0))
+            .collect();
+        self.meters.values.set_vec(values);
+        let clipped: Vec<bool> = (0..self.meters.clipped.row_count())
+            .map(|i| self.meters.clipped.row_data(i).unwrap_or(false))
+            .collect();
+        self.meters.clipped.set_vec(clipped);
     }
 }
 
