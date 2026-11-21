@@ -27,10 +27,17 @@ pub struct WgpuRenderer {
 impl WgpuRenderer {
     /// Inicializa o dispositivo wgpu (headless, sem surface).
     pub fn new() -> Result<Self, String> {
+        let backends = if cfg!(target_os = "linux") {
+            wgpu::Backends::VULKAN | wgpu::Backends::GL
+        } else if cfg!(target_os = "windows") {
+            // DX12/GL evita a rota problemática do Vulkan nesta máquina.
+            wgpu::Backends::DX12 | wgpu::Backends::GL
+        } else {
+            wgpu::Backends::all()
+        };
+
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            // DX12 + GL apenas: o driver Vulkan da Intel (igvk64.dll) derruba
-            // o processo com AV na criação do device nesta máquina.
-            backends: wgpu::Backends::DX12 | wgpu::Backends::GL,
+            backends,
             flags: wgpu::InstanceFlags::empty(),
             backend_options: wgpu::BackendOptions::default(),
             memory_budget_thresholds: Default::default(),

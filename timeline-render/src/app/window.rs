@@ -1,13 +1,13 @@
 //! Laço de eventos winit: `AppHandler` e os pontos de entrada `run` (binário
 //! standalone) e `run_native_window` (janela nativa embeddável pelo app).
 
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use std::time::Instant;
 
 use daw_core::transport::Transport;
 use raw_window_handle::HasWindowHandle;
-use windows_sys::Win32::Foundation::{POINT, HWND, RECT};
-use windows_sys::Win32::UI::WindowsAndMessaging::{GetCursorPos, GetWindowRect, GetClientRect};
+use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
+use windows_sys::Win32::UI::WindowsAndMessaging::{GetClientRect, GetCursorPos, GetWindowRect};
 
 /// Especificação do modo "encaixado": a janela da timeline vira uma janela
 /// winit borderless que rastreia a janela principal (do app Makepad/Slint) e
@@ -29,12 +29,12 @@ pub struct DockSpec {
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::window::{WindowId};
 use winit::window;
+use winit::window::WindowId;
 
-use crate::app::{DropPreview, KeyAction, App};
+use crate::app::{App, DropPreview, KeyAction};
 use crate::clips::ClipDemo;
-use crate::tools::{self, current_tool, set_tool, Tool};
+use crate::tools::{self, Tool, current_tool, set_tool};
 
 /// Comandos externos (thread do app → thread da janela da timeline).
 /// Enviados pela janela nativa do app para espelhar clips/bpm no engine; o
@@ -59,12 +59,24 @@ pub fn current_cursor_pos(window: &winit::window::Window) -> Option<(f32, f32)> 
         let mut pt = POINT { x: 0, y: 0 };
         if GetCursorPos(&mut pt) != 0 {
             // Tenta obter a posição da área cliente via Win32
-            let mut rect = RECT { left: 0, top: 0, right: 0, bottom: 0 };
-            if let raw_window_handle::RawWindowHandle::Win32(h) = window.window_handle().ok()?.as_raw() {
+            let mut rect = RECT {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+            };
+            if let raw_window_handle::RawWindowHandle::Win32(h) =
+                window.window_handle().ok()?.as_raw()
+            {
                 let hwnd = h.hwnd.get() as HWND;
                 if GetWindowRect(hwnd, &mut rect) != 0 {
                     // Obtém o tamanho da área cliente
-                    let mut client_rect = RECT { left: 0, top: 0, right: 0, bottom: 0 };
+                    let mut client_rect = RECT {
+                        left: 0,
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                    };
                     if GetClientRect(hwnd, &mut client_rect) != 0 {
                         // O client_rect tem (0,0, width, height) - relativo à área cliente
                         // O rect tem (left, top, right, bottom) - coordenadas de tela da janela
@@ -118,7 +130,7 @@ impl AppHandler {
         }
     }
 
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn with_dock(
         transport: Arc<Mutex<Transport>>,
         rx: mpsc::Receiver<WindowCommand>,
@@ -155,7 +167,9 @@ impl AppHandler {
                         app.tempo_map = daw_core::timeline::TempoMap::from_bpm(app.bpm);
                     } else {
                         app.tempo_map.changes = changes;
-                        app.tempo_map.changes.sort_by(|a, b| a.beat.partial_cmp(&b.beat).unwrap());
+                        app.tempo_map
+                            .changes
+                            .sort_by(|a, b| a.beat.partial_cmp(&b.beat).unwrap());
                     }
                     app.request_redraw();
                 }
@@ -169,7 +183,7 @@ impl AppHandler {
 }
 
 impl ApplicationHandler for AppHandler {
-fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.app.is_none() {
             let title = if self.transport.is_some() {
                 "RuanaStudio — Timeline"
@@ -182,10 +196,8 @@ fn resumed(&mut self, event_loop: &ActiveEventLoop) {
             // Modo dock: sem decoração, sem taskbar, invisível até o tracker
             // encaixar e mostrar na posição certa (evita piscar na origem).
             if self.dock.is_some() {
-                attrs = attrs
-                    .with_decorations(false)
-                    .with_visible(false);
-                #[cfg(windows)]
+                attrs = attrs.with_decorations(false).with_visible(false);
+                #[cfg(target_os = "windows")]
                 {
                     use winit::platform::windows::WindowAttributesExtWindows;
                     attrs = attrs.with_skip_taskbar(true);
@@ -198,8 +210,12 @@ fn resumed(&mut self, event_loop: &ActiveEventLoop) {
             let inner = window.inner_size();
             let win: Arc<winit::window::Window> = Arc::new(window);
             self.app = Some(
-                App::new(Some(win), (inner.width, inner.height), self.transport.clone())
-                    .expect("app init failed"),
+                App::new(
+                    Some(win),
+                    (inner.width, inner.height),
+                    self.transport.clone(),
+                )
+                .expect("app init failed"),
             );
             // Initialize tools first (creates the ToolManager singleton),
             // THEN set the HWND so the ToolManager can use SetClassLongPtrW.
@@ -207,7 +223,7 @@ fn resumed(&mut self, event_loop: &ActiveEventLoop) {
                 app.init_tools();
                 app.request_redraw();
             }
-// Get HWND for Win32 cursor class override (MUST be after init_tools)
+            // Get HWND for Win32 cursor class override (MUST be after init_tools)
             if let Some(app) = &self.app {
                 if let Some(window) = &app.window {
                     if let Ok(handle) = window.window_handle() {
@@ -218,7 +234,7 @@ fn resumed(&mut self, event_loop: &ActiveEventLoop) {
                 }
             }
             // Modo dock: thread que mantém a janela encaixada na janela mãe.
-            #[cfg(windows)]
+            #[cfg(target_os = "windows")]
             if let (Some(dock), Some(app)) = (self.dock.clone(), &self.app) {
                 if let Some(window) = &app.window {
                     if let Ok(handle) = window.window_handle() {
@@ -237,11 +253,13 @@ fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         window_id: WindowId,
         event: WindowEvent,
     ) {
-        if window_id != self.window_id { return; }
+        if window_id != self.window_id {
+            return;
+        }
         let app = self.app.as_mut().expect("app not initialized");
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
-WindowEvent::Resized(size) => {
+            WindowEvent::Resized(size) => {
                 app.resize((size.width, size.height));
             }
             WindowEvent::RedrawRequested => {
@@ -266,20 +284,15 @@ WindowEvent::Resized(size) => {
                 if app.show_piano_roll && (app.pr_loop_drag.is_some() || app.pr_scrubbing) {
                     app.request_redraw();
                 }
-                if app.show_timewarp
-                    && (app.tw_scrubbing || app.timewarp_inter.warp_is_dragging())
+                if app.show_timewarp && (app.tw_scrubbing || app.timewarp_inter.warp_is_dragging())
                 {
                     app.request_redraw();
                 }
                 // Se um arquivo estiver sendo arrastado, atualiza a posição do preview
                 // usando a posição global do cursor (já que o OS não envia CursorMoved
                 // durante drag de arquivo).
-if app.is_dragging_file {
-                    if let Some(pos) = app
-                        .window
-                        .as_ref()
-                        .and_then(|w| current_cursor_pos(w))
-                    {
+                if app.is_dragging_file {
+                    if let Some(pos) = app.window.as_ref().and_then(|w| current_cursor_pos(w)) {
                         app.last_cursor = pos;
                         let (beat, track) = app.cursor_to_snapped_beat_track(pos);
                         if let Some(preview) = app.drop_preview.as_mut() {
@@ -302,7 +315,7 @@ if app.is_dragging_file {
                 device_id: _,
                 delta,
                 phase: _,
-} => {
+            } => {
                 let (dx, dy) = match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => (x * 40.0, y * 40.0),
                     winit::event::MouseScrollDelta::PixelDelta(p) => (p.x as f32, p.y as f32),
@@ -359,11 +372,9 @@ if app.is_dragging_file {
                 } else if button == winit::event::MouseButton::Left {
                     // Edit toolbar: clique muda a ferramenta e NÃO propaga.
                     if state == ElementState::Pressed {
-                        if let Some(idx) = app.toolbar_hit(
-                            app.size.0 as f32,
-                            app.size.1 as f32,
-                            click_pos,
-                        ) {
+                        if let Some(idx) =
+                            app.toolbar_hit(app.size.0 as f32, app.size.1 as f32, click_pos)
+                        {
                             if let Some(tool) = crate::app::edit_toolbar::tool_from_index(idx) {
                                 set_tool(tool);
                             }
@@ -396,31 +407,31 @@ if app.is_dragging_file {
                 if app.cursor_warp_pending {
                     app.cursor_warp_pending = false;
                 } else {
-                app.handle_cursor_moved((position.x as f32, position.y as f32));
-                // Hit-test da edit toolbar — tem prioridade sobre o resto.
-                let hit = app.toolbar_hit(
-                    app.size.0 as f32,
-                    app.size.1 as f32,
-                    (position.x as f32, position.y as f32),
-                );
-                if hit != app.toolbar_hover {
-                    app.toolbar_hover = hit;
-                    app.request_redraw();
-                }
-                if app.toolbar_hover.is_some() {
-                    tools::set_hand_override(true);
-                }
-                // Mantém o cursor da ferramenta ativa persistente (evita voltar pro
-                // cursor padrão do SO a cada movimento).
-                // Só chama update_cursor() se NÃO houver override ativo (seam/fade hover),
-                // pois o handle_cursor_moved já fez set_cursor_override.
-                if app.toolbar_hover.is_none()
-                    && !app.clip_interaction.is_seam_hovered()
-                    && app.fade_interaction.hovered.is_none()
-                {
-                    tools::update_cursor();
-                }
-                if app.loop_drag.is_some() || app.scrubbing || app.clip_interaction.is_dragging()
+                    app.handle_cursor_moved((position.x as f32, position.y as f32));
+                    // Hit-test da edit toolbar — tem prioridade sobre o resto.
+                    let hit = app.toolbar_hit(
+                        app.size.0 as f32,
+                        app.size.1 as f32,
+                        (position.x as f32, position.y as f32),
+                    );
+                    if hit != app.toolbar_hover {
+                        app.toolbar_hover = hit;
+                        app.request_redraw();
+                    }
+                    if app.toolbar_hover.is_some() {
+                        tools::set_hand_override(true);
+                    }
+                    // Mantém o cursor da ferramenta ativa persistente (evita voltar pro
+                    // cursor padrão do SO a cada movimento).
+                    // Só chama update_cursor() se NÃO houver override ativo (seam/fade hover),
+                    // pois o handle_cursor_moved já fez set_cursor_override.
+                    if app.toolbar_hover.is_none()
+                        && !app.clip_interaction.is_seam_hovered()
+                        && app.fade_interaction.hovered.is_none()
+                    {
+                        tools::update_cursor();
+                    }
+                    if app.loop_drag.is_some() || app.scrubbing || app.clip_interaction.is_dragging()
                     || app.clip_interaction.is_marqueeing() || app.clip_interaction.hover_idx.is_some()
                     || app.clip_interaction.is_drawing()
                     || app.clip_interaction.is_seam_hovered()
@@ -435,9 +446,10 @@ if app.is_dragging_file {
                     || app.pr_loop_drag.is_some()
                     || app.pr_scrubbing
                     || (app.show_timewarp
-                        && (app.tw_scrubbing || app.timewarp_inter.warp_is_dragging())) {
-                    app.request_redraw();
-                }
+                        && (app.tw_scrubbing || app.timewarp_inter.warp_is_dragging()))
+                    {
+                        app.request_redraw();
+                    }
                 }
             }
             WindowEvent::HoveredFile(path) => {
@@ -455,12 +467,16 @@ if app.is_dragging_file {
                         // calcula beat/track onde o cursor está
                         let (beat, track) = app.cursor_to_snapped_beat_track(app.last_cursor);
                         app.drop_path = Some(p.to_string());
-                        app.drop_preview = Some(DropPreview { beat, track, len_beats: 0.0 });
+                        app.drop_preview = Some(DropPreview {
+                            beat,
+                            track,
+                            len_beats: 0.0,
+                        });
                         app.is_dragging_file = true;
                         app.request_redraw();
                     }
                 }
-            },
+            }
             WindowEvent::HoveredFileCancelled => {
                 // Limpa preview se o usuário abandona o arrasto
                 app.drop_preview = None;
@@ -469,7 +485,7 @@ if app.is_dragging_file {
                 app.pending_drop_import = false;
                 app.is_dragging_file = false;
                 app.request_redraw();
-            },
+            }
             WindowEvent::DroppedFile(path) => {
                 if let Some(p) = path.to_str() {
                     let ext = std::path::Path::new(p)
@@ -492,7 +508,7 @@ if app.is_dragging_file {
                     }
                 }
             }
-WindowEvent::Focused(focused) => {
+            WindowEvent::Focused(focused) => {
                 if !focused {
                     app.playing = false;
                 }
@@ -515,9 +531,7 @@ WindowEvent::Focused(focused) => {
             if let Some(transport) = &self.transport {
                 if let Ok(t) = transport.lock() {
                     let pos = t.position_seconds() as f32;
-                    if (app.transport_seconds - pos).abs() > 0.00005
-                        || app.playing != t.playing
-                    {
+                    if (app.transport_seconds - pos).abs() > 0.00005 || app.playing != t.playing {
                         app.transport_seconds = pos;
                         app.playing = t.playing;
                         app.request_redraw();
@@ -569,9 +583,14 @@ pub fn run_native_window(
     // Criada numa thread dedicada (não é a main) — winit 0.30 exige o nome
     // disso explicitamente no Windows, senão o event loop panica.
     let mut builder = EventLoop::builder();
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         use winit::platform::windows::EventLoopBuilderExtWindows;
+        builder.with_any_thread(true);
+    }
+    #[cfg(target_os = "linux")]
+    {
+        use winit::platform::x11::EventLoopBuilderExtX11;
         builder.with_any_thread(true);
     }
     let event_loop = builder.build()?;
@@ -584,7 +603,7 @@ pub fn run_native_window(
 /// que rastreia a janela `parent_title` e se mantém encaixada abaixo do
 /// cabeçalho (`spec.top`), com margens. Fora do Windows, cai para
 /// `run_native_window` (janela separada).
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 pub fn run_docked_window(
     transport: Arc<Mutex<Transport>>,
     rx: mpsc::Receiver<WindowCommand>,
@@ -601,7 +620,7 @@ pub fn run_docked_window(
     Ok(())
 }
 
-#[cfg(not(windows))]
+#[cfg(not(target_os = "windows"))]
 pub fn run_docked_window(
     transport: Arc<Mutex<Transport>>,
     rx: mpsc::Receiver<WindowCommand>,
@@ -615,7 +634,7 @@ pub fn run_docked_window(
 /// ser destruída. A filha é registrada como janela OWNED da mãe
 /// (`GWLP_HWNDPARENT`), então o Windows já a esconde/restaura junto com a
 /// minimização da mãe e ela nunca fica atrás da main em z-order.
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 fn spawn_dock_tracker(child: HWND, spec: DockSpec) {
     // `HWND` é um ponteiro cru (não `Send`); vira `usize` ANTES de mover pra
     // thread, e é convertido de volta nos calls.
@@ -624,18 +643,17 @@ fn spawn_dock_tracker(child: HWND, spec: DockSpec) {
         .name("timeline-dock".into())
         .spawn(move || {
             use std::time::Duration;
-            use windows_sys::Win32::Foundation::{RECT, HWND as RawHWND};
+            use windows_sys::Win32::Foundation::{HWND as RawHWND, RECT};
             use windows_sys::Win32::Graphics::Gdi::ClientToScreen;
             use windows_sys::Win32::UI::HiDpi::GetDpiForWindow;
             use windows_sys::Win32::UI::WindowsAndMessaging::{
-                FindWindowW, GetClientRect, IsIconic, IsWindow, IsWindowVisible,
-                SetWindowLongPtrW, SetWindowPos, ShowWindow, GWLP_HWNDPARENT, HWND_TOP,
-                SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE,
+                FindWindowW, GWLP_HWNDPARENT, GetClientRect, HWND_TOP, IsIconic, IsWindow,
+                IsWindowVisible, SW_HIDE, SWP_NOACTIVATE, SWP_SHOWWINDOW, SetWindowLongPtrW,
+                SetWindowPos, ShowWindow,
             };
 
-            let to_wide = |s: &str| -> Vec<u16> {
-                s.encode_utf16().chain(std::iter::once(0)).collect()
-            };
+            let to_wide =
+                |s: &str| -> Vec<u16> { s.encode_utf16().chain(std::iter::once(0)).collect() };
             let parent_title = to_wide(&spec.parent_title);
             let ptr = |v: usize| v as RawHWND;
             let mut owner_set = false;
@@ -644,8 +662,8 @@ fn spawn_dock_tracker(child: HWND, spec: DockSpec) {
                 if unsafe { IsWindow(ptr(child)) } == 0 {
                     break;
                 }
-                let parent = unsafe { FindWindowW(std::ptr::null::<u16>(), parent_title.as_ptr()) }
-                    as usize;
+                let parent =
+                    unsafe { FindWindowW(std::ptr::null::<u16>(), parent_title.as_ptr()) } as usize;
                 if parent == 0 {
                     // Mãe ainda não encontrada: esconde a filha pra não ficar
                     // uma janela solta flutuando.
@@ -659,11 +677,7 @@ fn spawn_dock_tracker(child: HWND, spec: DockSpec) {
                 // sempre acima dela (a timeline nunca fica atrás do app).
                 if !owner_set {
                     unsafe {
-                        SetWindowLongPtrW(
-                            ptr(child),
-                            GWLP_HWNDPARENT,
-                            parent as isize,
-                        );
+                        SetWindowLongPtrW(ptr(child), GWLP_HWNDPARENT, parent as isize);
                     }
                     owner_set = true;
                 }
@@ -722,4 +736,3 @@ fn spawn_dock_tracker(child: HWND, spec: DockSpec) {
         })
         .ok();
 }
-

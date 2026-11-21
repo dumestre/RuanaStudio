@@ -31,8 +31,8 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
 
-use crate::slint_host::SlintOverlay;
 use crate::MainWindow;
+use crate::slint_host::SlintOverlay;
 use daw_core::project::Project;
 use daw_core::timeline::{MarkerMap, TempoMap};
 use daw_core::transport::{PlayMode, Transport};
@@ -158,9 +158,10 @@ impl EngineBridge {
         // Markers → write-back: live preview during drag
         {
             let project = project.clone();
-            engine.marker_write_back = Some(Box::new(move |map: &daw_core::timeline::MarkerMap| {
-                project.borrow_mut().marker_map = map.clone();
-            }));
+            engine.marker_write_back =
+                Some(Box::new(move |map: &daw_core::timeline::MarkerMap| {
+                    project.borrow_mut().marker_map = map.clone();
+                }));
         }
         // Markers → COMMIT (end of gesture): records undo
         {
@@ -172,15 +173,23 @@ impl EngineBridge {
         // Automation Lanes
         {
             let project = project.clone();
-            engine.automation_write_back = Some(Box::new(move |track_index: usize, curve: &daw_core::automation::AutomationCurve| {
-                project.borrow_mut().set_automation_curve(track_index, curve);
-            }));
+            engine.automation_write_back = Some(Box::new(
+                move |track_index: usize, curve: &daw_core::automation::AutomationCurve| {
+                    project
+                        .borrow_mut()
+                        .set_automation_curve(track_index, curve);
+                },
+            ));
         }
         {
             let project = project.clone();
-            engine.automation_commit = Some(Box::new(move |track_index: usize, curve: &daw_core::automation::AutomationCurve| {
-                project.borrow_mut().set_automation_curve(track_index, curve);
-            }));
+            engine.automation_commit = Some(Box::new(
+                move |track_index: usize, curve: &daw_core::automation::AutomationCurve| {
+                    project
+                        .borrow_mut()
+                        .set_automation_curve(track_index, curve);
+                },
+            ));
         }
         let mirrored_clip_ids = Rc::new(RefCell::new(Vec::<u64>::new()));
         // Clips → write-back: toda edição estrutural na engine (mover, deletar,
@@ -191,14 +200,15 @@ impl EngineBridge {
         {
             let project = project.clone();
             let mirrored = mirrored_clip_ids.clone();
-            engine.clip_write_back =
-                Some(Box::new(move |clips: &[timeline_render::clips::ClipDemo]| {
+            engine.clip_write_back = Some(Box::new(
+                move |clips: &[timeline_render::clips::ClipDemo]| {
                     crate::timeline_slint::reconcile_engine_clips_to_project(
                         clips,
                         &mut project.borrow_mut(),
                         &mirrored.borrow(),
                     );
-                }));
+                },
+            ));
         }
         let active_piano_clip_id = Rc::new(Cell::new(None));
         {
@@ -206,9 +216,7 @@ impl EngineBridge {
             let active_clip = active_piano_clip_id.clone();
             engine.piano_roll_write_back = Some(Box::new(move |notes| {
                 if let Some(clip_id) = active_clip.get() {
-                    project
-                        .borrow_mut()
-                        .set_clip_notes(clip_id, notes.to_vec());
+                    project.borrow_mut().set_clip_notes(clip_id, notes.to_vec());
                 }
             }));
         }
@@ -414,11 +422,7 @@ impl EngineBridge {
         // Espelha clips (projeto mudou).
         if self.clips_flag.replace(false) {
             let proj = self.project.borrow();
-            let bpm = self
-                .transport
-                .lock()
-                .map(|t| t.bpm as f32)
-                .unwrap_or(120.0);
+            let bpm = self.transport.lock().map(|t| t.bpm as f32).unwrap_or(120.0);
             self.engine.bpm = bpm;
             // `bpm` alinha a região audível da wave (source_start_beats) com
             // o mesmo mapeamento beats→frames do motor de áudio.
@@ -431,11 +435,7 @@ impl EngineBridge {
 
         // BPM mudou → re-decoda as waves (offsets de trim em beats) para
         // manter a waveform alinhada com o que o motor de áudio vai tocar.
-        let tbpm = self
-            .transport
-            .lock()
-            .map(|t| t.bpm as f32)
-            .unwrap_or(120.0);
+        let tbpm = self.transport.lock().map(|t| t.bpm as f32).unwrap_or(120.0);
         if (self.engine.bpm - tbpm).abs() > 0.01 {
             self.engine.bpm = tbpm;
             self.clips_flag.set(true);
@@ -543,7 +543,7 @@ impl EngineBridge {
         }
 
         if clip_drag || file_drag {
-            #[cfg(windows)]
+            #[cfg(target_os = "windows")]
             {
                 use windows_sys::Win32::Foundation::POINT;
                 use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
@@ -562,15 +562,19 @@ impl EngineBridge {
                     self.engine.last_cursor = (wpx as f32 - qx, wpy as f32 - qy);
                 }
             }
-            let (beat, track) =
-                self.engine.cursor_to_snapped_beat_track(self.engine.last_cursor);
+            let (beat, track) = self
+                .engine
+                .cursor_to_snapped_beat_track(self.engine.last_cursor);
             let changed = match &self.engine.drop_preview {
                 Some(p) => (p.beat - beat).abs() > 0.0005 || p.track != track,
                 None => true,
             };
             if changed {
-                self.engine.drop_preview =
-                    Some(timeline_render::app::DropPreview { beat, track, len_beats: 0.0 });
+                self.engine.drop_preview = Some(timeline_render::app::DropPreview {
+                    beat,
+                    track,
+                    len_beats: 0.0,
+                });
                 self.dirty = true;
             }
         } else if self.engine.drop_preview.is_some() {
@@ -642,10 +646,7 @@ impl EngineBridge {
 
 /// Instala os callbacks da engine vindos do componente `Timeline` (mesmos
 /// handlers do bridge offscreen antigo, agora operando na engine da surface).
-pub fn install_engine_callbacks(
-    ui: &MainWindow,
-    bridge: Rc<RefCell<EngineBridge>>,
-) {
+pub fn install_engine_callbacks(ui: &MainWindow, bridge: Rc<RefCell<EngineBridge>>) {
     // ---- ALTURA DE TRACK (divisor do track panel) ---------------------
     {
         let b = bridge.clone();
@@ -653,7 +654,8 @@ pub fn install_engine_callbacks(
             let mut b = b.borrow_mut();
             let i = index.max(0) as usize;
             if b.engine.track_heights.len() <= i {
-                b.engine.track_heights
+                b.engine
+                    .track_heights
                     .resize(i + 1, timeline_render::app::TRACK_BASE_HEIGHT);
             }
             // A UI manda px LÓGICOS; a engine guarda px com zoom 1.0.
@@ -719,25 +721,21 @@ pub fn install_engine_callbacks(
                     // engine wgpu.
                     if py > engine.ruler_px {
                         let cm = engine.clip_metrics();
-                        if let Some(idx) = engine
-                            .clip_interaction
-                            .hit_test(&engine.clips, (px, py), &cm)
+                        if let Some(idx) =
+                            engine
+                                .clip_interaction
+                                .hit_test(&engine.clips, (px, py), &cm)
                         {
                             let (id, clip_beat, name) = {
                                 let clip = &engine.clips[idx];
-                                (
-                                    clip.id,
-                                    clip.beat,
-                                    clip.name.clone().unwrap_or_default(),
-                                )
+                                (clip.id, clip.beat, clip.name.clone().unwrap_or_default())
                             };
                             if id != 0 {
                                 engine.clip_interaction.select_only(idx);
-                                let beat_offset =
-                                    (((px + engine.scroll_x)
-                                        / engine.px_per_beat.max(0.001))
-                                        - clip_beat)
-                                        .max(0.0);
+                                let beat_offset = (((px + engine.scroll_x)
+                                    / engine.px_per_beat.max(0.001))
+                                    - clip_beat)
+                                    .max(0.0);
 
                                 // Coordenadas de janela (lógicas) para o
                                 // overlay Slint: a origem da área de input
@@ -779,8 +777,7 @@ pub fn install_engine_callbacks(
             let (px, py) = (x * scale, y * scale);
             let engine = &mut b.engine;
             if engine.scrubbing {
-                let beat =
-                    ((px + engine.scroll_x) / engine.px_per_beat.max(0.001)).max(0.0);
+                let beat = ((px + engine.scroll_x) / engine.px_per_beat.max(0.001)).max(0.0);
                 if let Some(ui) = ui_weak.upgrade() {
                     ui.invoke_seek_to(beat);
                 }
@@ -1137,9 +1134,10 @@ impl ApplicationHandler for Handler {
             WindowEvent::CursorMoved { position, .. } => {
                 self.state.borrow_mut().last_cursor = (position.x as f32, position.y as f32);
                 let logical = logical_pos(position.x, position.y, scale);
-                overlay_dispatch(bridge, slint::platform::WindowEvent::PointerMoved {
-                    position: logical,
-                });
+                overlay_dispatch(
+                    bridge,
+                    slint::platform::WindowEvent::PointerMoved { position: logical },
+                );
             }
             WindowEvent::CursorLeft { .. } => {
                 overlay_dispatch(bridge, slint::platform::WindowEvent::PointerExited);
@@ -1191,10 +1189,8 @@ impl ApplicationHandler for Handler {
                                 // cursor even when the timeline is offset in the
                                 // window or the display uses scaling.
                                 let logical = logical_pos(px as f64, py as f64, scale);
-                                let target = ui.invoke_map_window_coords_to_timeline(
-                                    logical.x,
-                                    logical.y,
-                                );
+                                let target =
+                                    ui.invoke_map_window_coords_to_timeline(logical.x, logical.y);
                                 engine.snap_enabled = ui.get_snap_enabled();
                                 engine.paste_at_beat(target.beat, target.track.max(0) as usize);
                                 b.dirty = true;
@@ -1227,9 +1223,7 @@ impl ApplicationHandler for Handler {
                 overlay_dispatch(bridge, event);
             }
             WindowEvent::MouseWheel {
-                delta,
-                phase: _,
-                ..
+                delta, phase: _, ..
             } => {
                 let (dx, dy) = match delta {
                     MouseScrollDelta::LineDelta(x, y) => (x * 40.0, y * 40.0),
@@ -1284,10 +1278,7 @@ impl ApplicationHandler for Handler {
                                     .unwrap_or_default();
                                 let mut b = bridge.borrow_mut();
                                 crate::project_io::save_project(
-                                    &mut b.io,
-                                    &project,
-                                    &transport,
-                                    shift,
+                                    &mut b.io, &project, &transport, shift,
                                 )
                             };
                             match saved {
@@ -1318,22 +1309,26 @@ impl ApplicationHandler for Handler {
                                     b.track_colors_model.clone(),
                                 );
                                 match models {
-                                    (Some(tracks), Some(mixer), Some(waves), Some(clips), Some(colors)) => {
-                                        match daw_project::ProjectFile::load(&path) {
-                                            Ok(file) => crate::project_open::apply(
-                                                ui,
-                                                &file,
-                                                &b.project,
-                                                &b.transport,
-                                                &waves,
-                                                &tracks,
-                                                &colors,
-                                                &clips,
-                                                &mixer,
-                                            ),
-                                            Err(e) => Err(format!("{}", e)),
-                                        }
-                                    }
+                                    (
+                                        Some(tracks),
+                                        Some(mixer),
+                                        Some(waves),
+                                        Some(clips),
+                                        Some(colors),
+                                    ) => match daw_project::ProjectFile::load(&path) {
+                                        Ok(file) => crate::project_open::apply(
+                                            ui,
+                                            &file,
+                                            &b.project,
+                                            &b.transport,
+                                            &waves,
+                                            &tracks,
+                                            &colors,
+                                            &clips,
+                                            &mixer,
+                                        ),
+                                        Err(e) => Err(format!("{}", e)),
+                                    },
                                     _ => Err("modelos da UI ainda não ligados".to_string()),
                                 }
                             };
@@ -1471,9 +1466,9 @@ impl ApplicationHandler for Handler {
         // a mesma do `tick`). Em não-Windows a função é um stub "sempre
         // pressionado" — no gate só Windows a utiliza, senão o loop nunca
         // dormiria fora da plataforma de desenvolvimento.
-        #[cfg(windows)]
+        #[cfg(target_os = "windows")]
         let mouse_held = left_button_is_down();
-        #[cfg(not(windows))]
+        #[cfg(not(target_os = "windows"))]
         let mouse_held = false;
         let active = match self.bridge.as_ref() {
             Some(bridge) => {
@@ -1516,9 +1511,14 @@ impl ApplicationHandler for Handler {
 /// thread principal, daí o `any_thread` no Windows.
 pub fn run() -> Result<(), slint::PlatformError> {
     let mut builder = EventLoop::with_user_event();
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         use winit::platform::windows::EventLoopBuilderExtWindows;
+        builder.with_any_thread(true);
+    }
+    #[cfg(target_os = "linux")]
+    {
+        use winit::platform::x11::EventLoopBuilderExtX11;
         builder.with_any_thread(true);
     }
     let event_loop = builder.build().map_err(|e| {
@@ -1571,13 +1571,13 @@ fn logical_pos(x: f64, y: f64, scale_factor: f32) -> slint::LogicalPosition {
 /// Windows não há como perguntar — aí assumimos "pressionado" e o
 /// comportamento é o de sempre (o `up` resolve).
 fn left_button_is_down() -> bool {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState;
         const VK_LBUTTON: i32 = 0x01;
         unsafe { GetAsyncKeyState(VK_LBUTTON) as u16 & 0x8000 != 0 }
     }
-    #[cfg(not(windows))]
+    #[cfg(not(target_os = "windows"))]
     {
         true
     }

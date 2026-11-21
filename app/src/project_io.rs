@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 use daw_core::project::Project;
 use daw_core::transport::Transport;
-use daw_project::{ProjectFile, FILE_EXTENSION};
+use daw_project::{FILE_EXTENSION, ProjectFile};
 
 /// Nome mostrado quando o projeto ainda não foi salvo.
 pub const UNTITLED: &str = "Sem titulo";
@@ -108,7 +108,7 @@ pub fn save_project(
 }
 
 /// Diálogo nativo "Salvar como". Devolve `None` se o usuário cancelar.
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 pub fn choose_save_path(current: Option<&Path>) -> Option<PathBuf> {
     use std::mem::size_of;
     use windows_sys::Win32::Foundation::HWND;
@@ -117,8 +117,9 @@ pub fn choose_save_path(current: Option<&Path>) -> Option<PathBuf> {
     };
     use windows_sys::core::{PCWSTR, PWSTR};
 
-    let filter: Vec<u16> =
-        "Ruana Project\0*.ruana\0All Files\0*.*\0\0".encode_utf16().collect();
+    let filter: Vec<u16> = "Ruana Project\0*.ruana\0All Files\0*.*\0\0"
+        .encode_utf16()
+        .collect();
     let ext: Vec<u16> = format!("{FILE_EXTENSION}\0").encode_utf16().collect();
 
     let mut path = vec![0u16; 32768];
@@ -145,8 +146,9 @@ pub fn choose_save_path(current: Option<&Path>) -> Option<PathBuf> {
 }
 
 /// Fallback (Linux/macOS): usa `rfd`, como no seletor de áudio.
-#[cfg(not(windows))]
-pub fn choose_save_path(current: Option<&Path>) -> Option<PathBuf> {    let mut dialog = rfd::FileDialog::new()
+#[cfg(not(target_os = "windows"))]
+pub fn choose_save_path(current: Option<&Path>) -> Option<PathBuf> {
+    let mut dialog = rfd::FileDialog::new()
         .add_filter("Ruana Project", &[FILE_EXTENSION])
         .set_file_name(
             current
@@ -161,7 +163,7 @@ pub fn choose_save_path(current: Option<&Path>) -> Option<PathBuf> {    let mut 
 }
 
 /// Diálogo nativo "Abrir". Devolve `None` se o usuário cancelar.
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 pub fn choose_open_path() -> Option<PathBuf> {
     use std::mem::size_of;
     use windows_sys::Win32::Foundation::HWND;
@@ -170,8 +172,9 @@ pub fn choose_open_path() -> Option<PathBuf> {
     };
     use windows_sys::core::{PCWSTR, PWSTR};
 
-    let filter: Vec<u16> =
-        "Ruana Project\0*.ruana\0All Files\0*.*\0\0".encode_utf16().collect();
+    let filter: Vec<u16> = "Ruana Project\0*.ruana\0All Files\0*.*\0\0"
+        .encode_utf16()
+        .collect();
     let mut path = vec![0u16; 32768];
 
     let mut dialog = OPENFILENAMEW::default();
@@ -191,7 +194,7 @@ pub fn choose_open_path() -> Option<PathBuf> {
 }
 
 /// Fallback (Linux/macOS).
-#[cfg(not(windows))]
+#[cfg(not(target_os = "windows"))]
 pub fn choose_open_path() -> Option<PathBuf> {
     rfd::FileDialog::new()
         .add_filter("Ruana Project", &[FILE_EXTENSION])

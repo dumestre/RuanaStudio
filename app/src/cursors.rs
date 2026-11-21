@@ -1,24 +1,24 @@
 use std::sync::{Mutex, OnceLock};
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 use std::collections::HashMap;
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 use std::path::PathBuf;
 
-#[cfg(windows)]
-use windows_sys::Win32::Foundation::{HINSTANCE, HWND, LRESULT, POINT, WPARAM, LPARAM};
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, POINT, WPARAM};
+#[cfg(target_os = "windows")]
 use windows_sys::Win32::Graphics::Gdi::ScreenToClient;
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::UI::HiDpi::GetDpiForWindow;
+#[cfg(target_os = "windows")]
 use windows_sys::Win32::UI::Shell::{DefSubclassProc, SetWindowSubclass};
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetCursorPos, HCURSOR, IDC_ARROW, IMAGE_CURSOR, LR_DEFAULTSIZE, LR_LOADFROMFILE, LoadCursorW,
     LoadImageW, SetCursor, WM_SETCURSOR,
 };
-#[cfg(windows)]
-use windows_sys::Win32::UI::HiDpi::GetDpiForWindow;
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 use windows_sys::core::PCWSTR;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -52,7 +52,7 @@ impl ToolCursor {
         }
     }
 
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     pub fn cursor_file_name(&self) -> &'static str {
         match self {
             ToolCursor::Select => "select.cur",
@@ -69,7 +69,7 @@ impl ToolCursor {
     }
 
     /// Variante escura (modo Paper) — mesmo nome com sufixo `-dark`.
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     pub fn dark_cursor_file_name(&self) -> &'static str {
         match self {
             ToolCursor::Select => "select-dark.cur",
@@ -86,21 +86,21 @@ impl ToolCursor {
     }
 }
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 #[derive(Copy, Clone)]
 struct CursorHandle {
     hcursor: HCURSOR,
 }
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 unsafe impl Send for CursorHandle {}
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 unsafe impl Sync for CursorHandle {}
 
 pub struct CursorManager {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     cursors: HashMap<ToolCursor, CursorHandle>,
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     dark_cursors: HashMap<ToolCursor, CursorHandle>,
     current_tool: Option<ToolCursor>,
     dark: bool,
@@ -108,7 +108,7 @@ pub struct CursorManager {
 
 impl CursorManager {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        #[cfg(windows)]
+        #[cfg(target_os = "windows")]
         {
             let cursor_dir = Self::cursor_directory()?;
             let all = [
@@ -139,7 +139,7 @@ impl CursorManager {
                 dark: false,
             })
         }
-        #[cfg(not(windows))]
+        #[cfg(not(target_os = "windows"))]
         {
             Ok(Self {
                 current_tool: None,
@@ -148,11 +148,8 @@ impl CursorManager {
         }
     }
 
-    #[cfg(windows)]
-    fn load_cursor(
-        cursor_dir: &std::path::Path,
-        file_name: &str,
-    ) -> Option<CursorHandle> {
+    #[cfg(target_os = "windows")]
+    fn load_cursor(cursor_dir: &std::path::Path, file_name: &str) -> Option<CursorHandle> {
         let cur_path = cursor_dir.join(file_name);
         if !cur_path.exists() {
             eprintln!("[cursor] arquivo nao encontrado: {}", cur_path.display());
@@ -187,7 +184,7 @@ impl CursorManager {
         }
     }
 
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn cursor_directory() -> Result<PathBuf, Box<dyn std::error::Error>> {
         let exe_path = std::env::current_exe()?;
         let exe_dir = exe_path.parent().ok_or("No parent directory")?;
@@ -197,8 +194,12 @@ impl CursorManager {
         let candidates = [
             exe_dir.join("cursors"),
             exe_dir.join("../cursors"),
-            std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("app/cursors"),
-            std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("cursors"),
+            std::env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .join("app/cursors"),
+            std::env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .join("cursors"),
         ];
         for cand in &candidates {
             if cand.exists() && cand.is_dir() {
@@ -212,11 +213,14 @@ impl CursorManager {
             }
         }
         // Fallback final: exe_dir/cursors mesmo que vazio — load_cursor vai falhar com log.
-        eprintln!("[cursor] diretorio nao encontrado, usando {}", exe_dir.join("cursors").display());
+        eprintln!(
+            "[cursor] diretorio nao encontrado, usando {}",
+            exe_dir.join("cursors").display()
+        );
         Ok(exe_dir.join("cursors"))
     }
 
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     pub fn set_window_handle(&mut self, hwnd: HWND) {
         unsafe {
             let _ = ACTIVE_CURSOR.get_or_init(|| Mutex::new(None));
@@ -228,7 +232,7 @@ impl CursorManager {
     }
 
     pub fn set_tool(&mut self, tool: ToolCursor) -> Result<(), Box<dyn std::error::Error>> {
-        #[cfg(windows)]
+        #[cfg(target_os = "windows")]
         {
             self.apply_tool_cursor(tool);
         }
@@ -240,7 +244,7 @@ impl CursorManager {
     /// Reaplica o cursor da ferramenta atual quando houver uma ativa.
     pub fn set_dark(&mut self, dark: bool) -> Result<(), Box<dyn std::error::Error>> {
         self.dark = dark;
-        #[cfg(windows)]
+        #[cfg(target_os = "windows")]
         {
             if let Some(tool) = self.current_tool {
                 self.apply_tool_cursor(tool);
@@ -249,7 +253,7 @@ impl CursorManager {
         Ok(())
     }
 
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     pub fn set_timeline_bounds(x: f32, y: f32, w: f32, h: f32) {
         if let Some(mut bounds) = TIMELINE_BOUNDS.get().and_then(|m| m.lock().ok()) {
             bounds.x = x;
@@ -260,10 +264,10 @@ impl CursorManager {
         }
     }
 
-    #[cfg(not(windows))]
+    #[cfg(not(target_os = "windows"))]
     pub fn set_timeline_bounds(_x: f32, _y: f32, _w: f32, _h: f32) {}
 
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn apply_tool_cursor(&self, tool: ToolCursor) {
         let map = if self.dark {
             &self.dark_cursors
@@ -281,12 +285,13 @@ impl CursorManager {
     }
 
     pub fn reset_to_default(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        #[cfg(windows)]
+        #[cfg(target_os = "windows")]
         {
             if let Some(mut active) = ACTIVE_CURSOR.get().and_then(|m| m.lock().ok()) {
                 *active = None;
             }
-            let default = unsafe { LoadCursorW(core::ptr::null_mut(), IDC_ARROW as usize as *const u16) };
+            let default =
+                unsafe { LoadCursorW(core::ptr::null_mut(), IDC_ARROW as usize as *const u16) };
             if !default.is_null() {
                 unsafe {
                     SetCursor(default);
@@ -295,7 +300,7 @@ impl CursorManager {
             self.current_tool = None;
         }
 
-        #[cfg(not(windows))]
+        #[cfg(not(target_os = "windows"))]
         {
             self.current_tool = None;
         }
@@ -306,19 +311,19 @@ impl CursorManager {
 
 static CURSOR_MANAGER: OnceLock<Mutex<CursorManager>> = OnceLock::new();
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 static ACTIVE_CURSOR: OnceLock<Mutex<Option<isize>>> = OnceLock::new();
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 static TIMELINE_BOUNDS: OnceLock<Mutex<TimelineBounds>> = OnceLock::new();
 
 // Quando true, o cursor customizado só é aplicado sobre a área da timeline
 // (compara coordenadas lógicas do Slint vs. físicas do ScreenToClient, frágil
 // em DPI≠100%). Padrão: true — o cursor customizado só deve aparecer na timeline.
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 static CURSOR_OVER_TIMELINE_ENABLED: OnceLock<std::sync::atomic::AtomicBool> = OnceLock::new();
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 #[derive(Clone, Copy)]
 struct TimelineBounds {
     x: f32,
@@ -328,7 +333,7 @@ struct TimelineBounds {
     valid: bool,
 }
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 impl Default for TimelineBounds {
     fn default() -> Self {
         Self {
@@ -341,10 +346,10 @@ impl Default for TimelineBounds {
     }
 }
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 const SUBCLASS_ID: usize = 1;
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 unsafe fn is_cursor_over_timeline(hwnd: HWND) -> bool {
     let bounds = match TIMELINE_BOUNDS.get().and_then(|m| m.lock().ok()) {
         Some(b) => *b,
@@ -373,7 +378,7 @@ unsafe fn is_cursor_over_timeline(hwnd: HWND) -> bool {
     cx >= bounds.x && cx <= bounds.x + bounds.w && cy >= bounds.y && cy <= bounds.y + bounds.h
 }
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 unsafe extern "system" fn cursor_subclass_proc(
     hwnd: HWND,
     msg: u32,
@@ -450,7 +455,7 @@ pub fn reset_cursor_to_default() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 pub fn set_cursor_window_handle(hwnd: *mut std::ffi::c_void) {
     if let Some(mut mgr) = get_cursor_manager_lock() {
         mgr.set_window_handle(hwnd as HWND);

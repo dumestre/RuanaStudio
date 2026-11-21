@@ -9,10 +9,10 @@
 //! 3. `DroppedFile` → o sample já está em RAM; a inserção é imediata.
 //! 4. `HoveredFileCancelled` → desliga o overlay e descarta o job.
 
+use crate::BeatMetrics;
 use crate::ClipData;
 use crate::MainWindow;
 use crate::SamplerMetrics;
-use crate::BeatMetrics;
 use crate::clip_cache;
 use crate::importer::{import_audio_file_with_cache_async, is_audio_path};
 use crate::waveform::WaveformCache;
@@ -98,7 +98,7 @@ pub fn install(
                 WindowEvent::DroppedFile(path) => {
                     if let Some(ui) = ui_weak.upgrade() {
                         if is_audio_path(&path) {
-                            #[cfg(windows)]
+                            #[cfg(target_os = "windows")]
                             let (phys_x, phys_y) = {
                                 use windows_sys::Win32::Foundation::POINT;
                                 use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
@@ -108,7 +108,7 @@ pub fn install(
                                 }
                                 (pt.x as f64, pt.y as f64)
                             };
-                            #[cfg(not(windows))]
+                            #[cfg(not(target_os = "windows"))]
                             let (phys_x, phys_y) = (0.0, 0.0);
 
                             let scale_factor = ui.window().scale_factor();
@@ -265,7 +265,7 @@ pub fn handle_dropped(
     if !is_audio_path(path) {
         return;
     }
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     let (phys_x, phys_y) = {
         use windows_sys::Win32::Foundation::POINT;
         use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
@@ -275,7 +275,7 @@ pub fn handle_dropped(
         }
         (pt.x as f64, pt.y as f64)
     };
-    #[cfg(not(windows))]
+    #[cfg(not(target_os = "windows"))]
     let (phys_x, phys_y) = (0.0, 0.0);
 
     let scale_f = scale as f64;

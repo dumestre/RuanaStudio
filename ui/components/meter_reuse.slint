@@ -60,7 +60,6 @@ export component StereoMeter inherits Rectangle {
                     x: 0px; y: 0px; width: parent.width;
                     height: parent.height * (1.0 - root.level-clamped(root.left-level));
                     background: root.meter-background;
-                    visible: !root.signal-fill-only || root.left-level > 0.001;
                 }
             }
 
@@ -119,7 +118,6 @@ export component StereoMeter inherits Rectangle {
                     x: 0px; y: 0px; width: parent.width;
                     height: parent.height * (1.0 - root.level-clamped(root.right-level));
                     background: root.meter-background;
-                    visible: !root.signal-fill-only || root.right-level > 0.001;
                 }
             }
 

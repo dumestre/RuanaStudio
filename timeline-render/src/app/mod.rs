@@ -387,8 +387,17 @@ impl App {
         size: (u32, u32),
         transport: Option<Arc<Mutex<Transport>>>,
     ) -> Result<Self, String> {
+        let backends = if cfg!(target_os = "linux") {
+            wgpu::Backends::VULKAN | wgpu::Backends::GL
+        } else if cfg!(target_os = "windows") {
+            // Evita o Vulkan no Windows nesta máquina; DX12/GL continuam disponíveis.
+            wgpu::Backends::DX12 | wgpu::Backends::GL
+        } else {
+            wgpu::Backends::all()
+        };
+
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::DX12 | wgpu::Backends::GL,
+            backends,
             flags: wgpu::InstanceFlags::empty(),
             backend_options: wgpu::BackendOptions::default(),
             memory_budget_thresholds: Default::default(),

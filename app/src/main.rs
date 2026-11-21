@@ -22,8 +22,8 @@
 
 slint::include_modules!();
 
-mod audio_bridge;
 mod async_sampler;
+mod audio_bridge;
 mod beat;
 mod clip_cache;
 mod cursors;
@@ -55,23 +55,23 @@ mod theme;
 mod timeline;
 mod timeline_slint;
 
+mod timewarp;
 mod waveform;
 mod waveform_gpu;
-mod timewarp;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use crate::audio_bridge::AudioBridge;
+#[cfg(target_os = "windows")]
+use crate::cursors::set_cursor_window_handle;
 use crate::cursors::{
     init_cursor_manager, set_cursor_for_tool, set_dark_cursors, set_timeline_bounds,
 };
-#[cfg(windows)]
-use crate::cursors::set_cursor_window_handle;
-use crate::audio_bridge::AudioBridge;
-use crate::mixer::MixerModels;
 use crate::meters::MeterPump;
+use crate::mixer::MixerModels;
 use crate::models::{bars_for_end_beat, bind_document_events, initial_bind};
 use crate::waveform::WaveformCache;
 use daw_core::mixer::MixerParam;
@@ -79,10 +79,10 @@ use daw_core::project::Project;
 use daw_core::transport::Transport;
 use raw_window_handle::HasWindowHandle;
 use slint::Model;
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 use timeline_render::tools::{init_tool_manager, set_hwnd as set_tools_hwnd};
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 fn choose_audio_file() -> Option<String> {
     use std::mem::size_of;
     use windows_sys::Win32::Foundation::HWND;
@@ -109,7 +109,7 @@ fn choose_audio_file() -> Option<String> {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(not(target_os = "windows"))]
 fn choose_audio_file() -> Option<String> {
     rfd::FileDialog::new()
         .add_filter("Audio Files", &["wav", "mp3", "flac", "ogg", "oga"])
@@ -237,7 +237,7 @@ pub fn setup(
 
     // Cursor customizado: HWND da janela winit (já existe sincronamente — sem
     // depender de timer que esperava a janela nativa do Slint subir).
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         if let Ok(handle) = window.window_handle() {
             if let raw_window_handle::RawWindowHandle::Win32(h) = handle.as_raw() {
@@ -297,7 +297,9 @@ pub fn setup(
 
     // Cache de waveforms (LRU): clip_id → CachedWave (LODs min/max).
     const WAVEFORM_CACHE_CAP: usize = 256;
-    let waveforms: Rc<RefCell<WaveformCache>> = Rc::new(RefCell::new(crate::waveform::WaveformCache::new(WAVEFORM_CACHE_CAP)));
+    let waveforms: Rc<RefCell<WaveformCache>> = Rc::new(RefCell::new(
+        crate::waveform::WaveformCache::new(WAVEFORM_CACHE_CAP),
+    ));
 
     // Renderer de waveform via wgpu (headless/offscreen + readback).
     // Criado UMA vez aqui na main thread e reutilizado por todos os clips.
@@ -334,9 +336,10 @@ pub fn setup(
             .iter()
             .map(|pattern| pattern.name.clone())
             .collect();
-        let pool_model = Rc::new(slint::VecModel::from(
-            crate::models::build_pool_clips(&pool, &pattern_names),
-        ));
+        let pool_model = Rc::new(slint::VecModel::from(crate::models::build_pool_clips(
+            &pool,
+            &pattern_names,
+        )));
         ui.set_pool_clips(pool_model.clone().into());
         pool_model
     };
@@ -401,17 +404,17 @@ pub fn setup(
     // MIDI Recording: entrada MIDI + estado de gravação.
     let midi_input = crate::midi_input::SharedMidiInput::new();
     let midi_input_manager = Rc::new(RefCell::new(
-        crate::midi_input::MidiInputManager::new(midi_input.event_tx.clone())
-            .unwrap_or_else(|e| {
-                eprintln!("[midi] Falha ao criar MidiInputManager: {}", e);
-                panic!("MIDI input manager required");
-            })
+        crate::midi_input::MidiInputManager::new(midi_input.event_tx.clone()).unwrap_or_else(|e| {
+            eprintln!("[midi] Falha ao criar MidiInputManager: {}", e);
+            panic!("MIDI input manager required");
+        }),
     ));
 
     // Preenche lista de dispositivos MIDI na UI.
     {
         let ports = midi_input_manager.borrow().list_ports();
-        let port_names: Vec<slint::SharedString> = ports.iter()
+        let port_names: Vec<slint::SharedString> = ports
+            .iter()
             .map(|s| slint::SharedString::from(s.as_str()))
             .collect();
         ui.set_midi_input_devices(Rc::new(slint::VecModel::from(port_names)).into());
@@ -442,26 +445,41 @@ pub fn setup(
 
             if recording {
                 // Inicia gravação: encontra/cria track MIDI armada
-                let track_id = proj.tracks.iter().find(|t| t.is_midi())
+                let track_id = proj
+                    .tracks
+                    .iter()
+                    .find(|t| t.is_midi())
                     .map(|t| t.id)
                     .or_else(|| {
                         // Cria track MIDI se não houver
                         let track_count = proj.tracks.len();
                         let new_id = track_count as u64 + 1;
-                        let _ = proj.add_track(daw_core::track::TrackKind::Midi, format!("MIDI {}", track_count + 1));
+                        let _ = proj.add_track(
+                            daw_core::track::TrackKind::Midi,
+                            format!("MIDI {}", track_count + 1),
+                        );
                         Some(new_id)
                     });
 
                 if let Some(track_id) = track_id {
                     // Cria clip MIDI vazio para gravar
                     let current_beat = _trans.position_ticks as f32 / _trans.ppq as f32;
-                    let clip_id = proj.add_clip(track_id, daw_core::clip::ClipKind::Midi, "MIDI Recording", current_beat, 4.0);
-                    
+                    let clip_id = proj.add_clip(
+                        track_id,
+                        daw_core::clip::ClipKind::Midi,
+                        "MIDI Recording",
+                        current_beat,
+                        4.0,
+                    );
+
                     if let Some(clip_id) = clip_id {
                         let rec_state = midi_input.state.lock().unwrap();
                         // TODO: Iniciar gravação com clip_id
                         drop(rec_state);
-                        eprintln!("[midi] Iniciando gravação no track {} clip {}", track_id, clip_id);
+                        eprintln!(
+                            "[midi] Iniciando gravação no track {} clip {}",
+                            track_id, clip_id
+                        );
                     }
                 }
             } else {
@@ -604,12 +622,8 @@ pub fn setup(
 
     // Modo single-window (AGENTS.md): sem janelas flutuantes — os handles
     // continuam existindo para os módulos que os pedem.
-    let handles = floats::install_no_floats(
-        ui,
-        project.clone(),
-        mixer_models.clone(),
-        audio.clone(),
-    );
+    let handles =
+        floats::install_no_floats(ui, project.clone(), mixer_models.clone(), audio.clone());
 
     // Timeline: edição de clips (drop, slice, glue, move/resize,
     // delete/rename/cor, clipboard, duplicate, add-track, undo/redo).
@@ -645,7 +659,12 @@ pub fn setup(
     }
 
     // Waveform: re-render na resolução exata quando o zoom muda.
-    waveform::wire_resolution_requests(ui, waveforms.clone(), wgpu_renderer.clone(), clips_model.clone());
+    waveform::wire_resolution_requests(
+        ui,
+        waveforms.clone(),
+        wgpu_renderer.clone(),
+        clips_model.clone(),
+    );
 
     // Explorador de arquivos: navegação, histórico e filtro.
     explorer::wire_explorer(ui);
@@ -696,13 +715,17 @@ pub fn setup(
     {
         let project = project.clone();
         ui.on_automation_param_changed(move |track, param| {
-            project.borrow_mut().set_automation_param(track as usize, param as usize);
+            project
+                .borrow_mut()
+                .set_automation_param(track as usize, param as usize);
         });
     }
     {
         let project = project.clone();
         ui.on_automation_lane_toggled(move |track, enabled| {
-            project.borrow_mut().toggle_automation_lane(track as usize, enabled);
+            project
+                .borrow_mut()
+                .toggle_automation_lane(track as usize, enabled);
         });
     }
 
@@ -791,8 +814,13 @@ pub fn setup(
         let project_paste = project.clone();
         let apply_mixer = handles.apply_mixer_state.clone();
         ui.on_mixer_paste_slots(move |channel| {
-            let Some(inserts) = paste_clipboard.borrow().clone() else { return; };
-            if project_paste.borrow_mut().set_mixer_inserts(channel.max(0) as usize, inserts) {
+            let Some(inserts) = paste_clipboard.borrow().clone() else {
+                return;
+            };
+            if project_paste
+                .borrow_mut()
+                .set_mixer_inserts(channel.max(0) as usize, inserts)
+            {
                 apply_mixer();
             }
         });
@@ -947,7 +975,7 @@ pub fn setup(
     // Arrasto da janela frameless - PROFISSIONAL sem tremor.
     // Delega ao SO via WM_NCLBUTTONDOWN/HTCAPTION (drag nativo do
     // Windows) - suave, com AeroSnap, sem cálculo manual.
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::Foundation::{HWND, LPARAM, WPARAM};
         use windows_sys::Win32::UI::WindowsAndMessaging::{
