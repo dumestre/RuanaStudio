@@ -218,6 +218,7 @@ pub fn install(
                 {
                     let ui_weak_t = ui_weak_s.clone();
                     let transport = transport.clone();
+                    let audio = audio.clone();
                     let clock = visual_clock.clone();
                     let last_lcd = Cell::new(i32::MIN);
                     let last_step = Cell::new(i32::MIN);
@@ -230,12 +231,23 @@ pub fn install(
                             let mut lcd_ticks: Option<i64> = None;
                             let mut bpm = 120.0f64;
                             let mut beat_only = false;
-                            if let Ok(t) = transport.try_lock() {
+                            if let Ok(mut t) = transport.try_lock() {
                                 if !t.playing {
                                     return;
                                 }
                                 beat_only = t.mode == PlayMode::BeatOnly;
                                 bpm = t.bpm as f64;
+
+                                // Sem dispositivo de áudio não existe callback RT
+                                // para atualizar position_ticks. Mantém o relógio
+                                // da Timeline avançando também neste modo silencioso.
+                                if audio.is_silent() && !beat_only {
+                                    let projected_secs = c.projected().max(0.0);
+                                    t.position_ticks = (projected_secs * t.bpm as f64
+                                        / 60.0
+                                        * t.ppq as f64) as u64;
+                                }
+
                                 let actual = t.position_seconds();
                                 let drift = actual - c.projected();
                                 if drift.abs() > 0.25 {

@@ -1368,7 +1368,12 @@ impl ApplicationHandler for Handler {
                     let mut b = bridge.borrow_mut();
                     let forward = match b.engine.handle_key(&key) {
                         timeline_render::app::KeyAction::TogglePlay => {
-                            ui.invoke_toggle_play_routed();
+                            let desired_playing = {
+                                let t = b.engine.transport.lock().unwrap();
+                                !(t.playing && t.mode == daw_core::transport::PlayMode::Timeline)
+                            };
+                            ui.set_playing(desired_playing);
+                            ui.invoke_play_state_changed(desired_playing);
                             false
                         }
                         timeline_render::app::KeyAction::ExitWindow

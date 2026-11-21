@@ -29,7 +29,9 @@ impl App {
         let vk = &event.logical_key;
 
         if pressed {
-            if *vk == Key::Named(NamedKey::Space) {
+            if *vk == Key::Named(NamedKey::Space)
+                || matches!(vk, Key::Character(s) if s.as_ref() == " ")
+            {
                 return KeyAction::TogglePlay;
             }
             if *vk == Key::Named(NamedKey::Escape) {
