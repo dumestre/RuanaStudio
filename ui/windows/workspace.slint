@@ -2372,6 +2372,14 @@ export component Workspace inherits Rectangle {
 
             panel-visible <=>
                 root.bottom-panel-visible;
+
+            audio-drivers <=> root.audio-drivers;
+            audio-driver-index <=> root.audio-driver-index;
+            audio-driver-changed(value) => { root.audio-driver-changed(value); }
+
+            audio-outputs <=> root.audio-outputs;
+            audio-output-index <=> root.audio-output-index;
+            audio-output-changed(value) => { root.audio-output-changed(value); }
         }
 
 
@@ -2535,4 +2543,15 @@ export component Workspace inherits Rectangle {
             }
         }
     }
+
+    // ========================================================
+    // PROPRIEDADES DE ÁUDIO
+    // ========================================================
+
+    in-out property <[string]> audio-drivers: ["ALSA", "JACK", "ASIO"];
+    in-out property <int> audio-driver-index: 0;
+    callback audio-driver-changed(string);
+    in-out property <[string]> audio-outputs: ["Dispositivo padrão"];
+    in-out property <int> audio-output-index: 0;
+    callback audio-output-changed(string);
 }

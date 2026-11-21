@@ -108,11 +108,16 @@ fn pick_supported_config(
             // O `BufferSize::Default` passa a ser o OS quem decide — e
             // pode voltar a ser pequeno de novo ("buffer baixo").
             let conf: cpal::StreamConfig = candidate.into();
+            let buffer_size = if cfg!(target_os = "linux") {
+                cpal::BufferSize::Default
+            } else {
+                cpal::BufferSize::Fixed(MIN_BUFFER_FRAMES)
+            };
             return Ok((
                 cpal::StreamConfig {
                     channels: conf.channels,
                     sample_rate: conf.sample_rate,
-                    buffer_size: cpal::BufferSize::Fixed(MIN_BUFFER_FRAMES),
+                    buffer_size,
                 },
                 format,
             ));
@@ -120,21 +125,12 @@ fn pick_supported_config(
     }
 
     let format = default.sample_format();
-    // Fallback para o default do OS: força o buffer fixo. Sem isso,
-    // `BufferSize::Default` passa a ser o OS quem decide — e pode
-    // voltar a ser pequeno de novo ("buffer baixo").
-    let stream_config = match default.buffer_size() {
-        cpal::SupportedBufferSize::Range { max, .. } if *max >= MIN_BUFFER_FRAMES => {
-            let mut cfg: cpal::StreamConfig = default.into();
-            cfg.buffer_size = cpal::BufferSize::Fixed(MIN_BUFFER_FRAMES);
-            cfg
-        }
-        _ => {
-            let mut cfg: cpal::StreamConfig = default.into();
-            cfg.buffer_size = cpal::BufferSize::Fixed(MIN_BUFFER_FRAMES);
-            cfg
-        }
-    };
+    // O PipeWire/PulseAudio define o buffer real no Linux; impor 1024
+    // frames pode rejeitar a configuração virtual padrão exposta pelo CPAL.
+    let mut stream_config: cpal::StreamConfig = default.into();
+    if !cfg!(target_os = "linux") {
+        stream_config.buffer_size = cpal::BufferSize::Fixed(MIN_BUFFER_FRAMES);
+    }
     Ok((stream_config, format))
 }
 
@@ -165,6 +161,7 @@ impl CpalBackend {
         };
 
         log_stream_config(sample_rate, config.buffer_size, channels);
+        eprintln!("[backend] sample format: {:?}", sample_format);
 
         let config_info = AudioConfig {
             sample_rate,
@@ -213,6 +210,86 @@ impl CpalBackend {
                     None,
                 )
             }
+            SampleFormat::I32 => {
+                let mut inner_callback = Some(callback);
+                device.build_output_stream(
+                    config.clone(),
+                    move |data: &mut [i32], _: &cpal::OutputCallbackInfo| {
+                        let cb = inner_callback.as_mut().unwrap();
+                        let mut f32_buf = vec![0.0f32; data.len()];
+                        cb(&mut f32_buf);
+                        for (out, &s) in data.iter_mut().zip(f32_buf.iter()) {
+                            *out = (s.clamp(-1.0, 1.0) * i32::MAX as f32) as i32;
+                        }
+                    },
+                    |err| eprintln!("audio stream error: {}", err),
+                    None,
+                )
+            }
+            SampleFormat::U32 => {
+                let mut inner_callback = Some(callback);
+                device.build_output_stream(
+                    config.clone(),
+                    move |data: &mut [u32], _: &cpal::OutputCallbackInfo| {
+                        let cb = inner_callback.as_mut().unwrap();
+                        let mut f32_buf = vec![0.0f32; data.len()];
+                        cb(&mut f32_buf);
+                        for (out, &s) in data.iter_mut().zip(f32_buf.iter()) {
+                            *out = ((s.clamp(-1.0, 1.0) + 1.0) * (u32::MAX as f32) * 0.5) as u32;
+                        }
+                    },
+                    |err| eprintln!("audio stream error: {}", err),
+                    None,
+                )
+            }
+            SampleFormat::F64 => {
+                let mut inner_callback = Some(callback);
+                device.build_output_stream(
+                    config.clone(),
+                    move |data: &mut [f64], _: &cpal::OutputCallbackInfo| {
+                        let cb = inner_callback.as_mut().unwrap();
+                        let mut f32_buf = vec![0.0f32; data.len()];
+                        cb(&mut f32_buf);
+                        for (out, &s) in data.iter_mut().zip(f32_buf.iter()) {
+                            *out = s.clamp(-1.0, 1.0) as f64;
+                        }
+                    },
+                    |err| eprintln!("audio stream error: {}", err),
+                    None,
+                )
+            }
+            SampleFormat::I8 => {
+                let mut inner_callback = Some(callback);
+                device.build_output_stream(
+                    config.clone(),
+                    move |data: &mut [i8], _: &cpal::OutputCallbackInfo| {
+                        let cb = inner_callback.as_mut().unwrap();
+                        let mut f32_buf = vec![0.0f32; data.len()];
+                        cb(&mut f32_buf);
+                        for (out, &s) in data.iter_mut().zip(f32_buf.iter()) {
+                            *out = (s.clamp(-1.0, 1.0) * i8::MAX as f32) as i8;
+                        }
+                    },
+                    |err| eprintln!("audio stream error: {}", err),
+                    None,
+                )
+            }
+            SampleFormat::U8 => {
+                let mut inner_callback = Some(callback);
+                device.build_output_stream(
+                    config.clone(),
+                    move |data: &mut [u8], _: &cpal::OutputCallbackInfo| {
+                        let cb = inner_callback.as_mut().unwrap();
+                        let mut f32_buf = vec![0.0f32; data.len()];
+                        cb(&mut f32_buf);
+                        for (out, &s) in data.iter_mut().zip(f32_buf.iter()) {
+                            *out = ((s.clamp(-1.0, 1.0) + 1.0) * 0.5 * u8::MAX as f32) as u8;
+                        }
+                    },
+                    |err| eprintln!("audio stream error: {}", err),
+                    None,
+                )
+            }
             _ => return Err(AudioError::NoSupportedConfig),
         }
         .map_err(AudioError::BuildStream)?;
@@ -228,4 +305,31 @@ impl CpalBackend {
     pub fn config(&self) -> &AudioConfig {
         &self.config
     }
+}
+
+pub fn available_output_hosts() -> Vec<String> {
+    cpal::available_hosts()
+        .into_iter()
+        .map(|host| host.name().to_string())
+        .collect()
+}
+
+pub fn output_device_names(host_name: &str) -> Vec<String> {
+    let host = cpal::available_hosts()
+        .into_iter()
+        .find(|host| host.name().eq_ignore_ascii_case(host_name))
+        .and_then(|host| cpal::host_from_id(host).ok())
+        .unwrap_or_else(cpal::default_host);
+
+    host.output_devices()
+        .ok()
+        .map(|devices| {
+            devices
+                .filter_map(|device| {
+                    let name = device.to_string();
+                    (!name.is_empty()).then_some(name)
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }

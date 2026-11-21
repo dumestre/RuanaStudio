@@ -274,6 +274,43 @@ pub fn setup(
     };
     let audio = audio_bridge::AudioBridge::new(audio_engine.as_ref().map(|e| e.handle()));
 
+    let audio_hosts = daw_audio::backend::available_output_hosts();
+    let host_names: Vec<slint::SharedString> = audio_hosts
+        .iter()
+        .map(|name| slint::SharedString::from(name.as_str()))
+        .collect();
+    ui.set_audio_drivers(Rc::new(slint::VecModel::from(host_names)).into());
+
+    let default_outputs = if let Some(host) = audio_hosts.first() {
+        daw_audio::backend::output_device_names(host)
+    } else {
+        vec!["Nenhum dispositivo disponível".to_string()]
+    };
+    let output_names: Vec<slint::SharedString> = default_outputs
+        .iter()
+        .map(|name| slint::SharedString::from(name.as_str()))
+        .collect();
+    ui.set_audio_outputs(Rc::new(slint::VecModel::from(output_names)).into());
+
+    {
+        let ui_weak = ui.as_weak();
+        ui.on_audio_driver_changed(move |value| {
+            let outputs = daw_audio::backend::output_device_names(&value.to_string());
+            if let Some(ui) = ui_weak.upgrade() {
+                let names: Vec<slint::SharedString> = outputs
+                    .iter()
+                    .map(|name| slint::SharedString::from(name.as_str()))
+                    .collect();
+                ui.set_audio_outputs(Rc::new(slint::VecModel::from(names)).into());
+                ui.set_audio_output_index(0);
+            }
+        });
+    }
+
+    ui.on_audio_output_changed(move |value| {
+        eprintln!("[audio] saída selecionada: {}", value);
+    });
+
     // O `audio_engine` precisa sobreviver ao retorno desta função: se cair,
     // a stream do CPAL fecha e o Transport nunca avança (playhead preso).
     bridge.borrow_mut().audio_engine = audio_engine;

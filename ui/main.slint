@@ -920,6 +920,12 @@ export component MainWindow inherits Window {
             metronome-state-changed(enabled) => { root.metronome-state-changed(enabled); }
             metronome-sound-changed(sound) => { root.metronome-sound-changed(sound); }
             metronome-volume-changed(value) => { root.metronome-volume-changed(value); }
+            audio-drivers <=> root.audio-drivers;
+            audio-driver-index <=> root.audio-driver-index;
+            audio-driver-changed(index) => { root.audio-driver-changed(index); }
+            audio-outputs <=> root.audio-outputs;
+            audio-output-index <=> root.audio-output-index;
+            audio-output-changed(value) => { root.audio-output-changed(value); }
             selected-track <=> root.selected-track;
             active-tool <=> root.active-tool;
             beat-open <=> root.beat-open;
@@ -1336,6 +1342,19 @@ export component MainWindow inherits Window {
             root.donation-open = false;
         }
     }
+
+
+    // =====================================================
+    // DRIVER E SAÍDA DE ÁUDIO
+    // =====================================================
+
+    in-out property <[string]> audio-drivers: ["ALSA", "JACK", "ASIO"];
+    in-out property <int> audio-driver-index: 0;
+    callback audio-driver-changed(string);
+
+    in-out property <[string]> audio-outputs: ["Dispositivo padrão"];
+    in-out property <int> audio-output-index: 0;
+    callback audio-output-changed(string);
 
 
 }
